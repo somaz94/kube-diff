@@ -43,6 +43,22 @@ kubectl krew install diff2
 # Binary
 curl -sL https://github.com/somaz94/kube-diff/releases/latest/download/kube-diff_linux_amd64.tar.gz | tar xz
 sudo mv kube-diff /usr/local/bin/
+
+# From source
+go install github.com/somaz94/kube-diff/cmd@latest
+```
+
+### Upgrade
+
+```bash
+# Homebrew
+brew upgrade kube-diff
+
+# Krew
+kubectl krew upgrade diff2
+
+# From source
+go install github.com/somaz94/kube-diff/cmd@latest
 ```
 
 ### Basic Usage

@@ -85,7 +85,7 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 	var results []*diff.DiffResult
 	for _, r := range resources {
 		ctx := context.Background()
-		clusterObj, err := fetcher.Get(ctx, r.APIVersion, r.Kind, r.Name, r.Namespace)
+		clusterObj, err := fetcher.Get(ctx, r.APIVersion, r.Kind, r.Namespace, r.Name)
 		if err != nil {
 			// Resource not found in cluster → new
 			result, compareErr := diff.Compare(r.Object, nil)

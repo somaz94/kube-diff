@@ -89,6 +89,17 @@ make build           # Build binary → ./kube-diff
 make clean           # Remove build artifacts
 ```
 
+### Install from Source
+
+To install the latest development version directly to your `$GOPATH/bin`:
+
+```bash
+cd kube-diff
+go install ./...
+```
+
+This is useful when you want to test unreleased changes locally without waiting for a new Homebrew/Krew release.
+
 <br/>
 
 ## Testing

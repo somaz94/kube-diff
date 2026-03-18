@@ -1,7 +1,12 @@
 package cli
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/somaz94/kube-diff/internal/source"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestExecute(t *testing.T) {
@@ -107,12 +112,67 @@ func TestParseSelector(t *testing.T) {
 }
 
 func TestMatchesLabels(t *testing.T) {
-	// Create a resource with labels via source.Resource
-	// We need to test matchesLabels directly
-	// Since it uses source.Resource with Object.GetLabels(),
-	// we test via parseSelector + the logic
+	tests := []struct {
+		name     string
+		labels   map[string]string
+		selector map[string]string
+		nilObj   bool
+		expected bool
+	}{
+		{
+			name:     "matching single label",
+			labels:   map[string]string{"app": "nginx"},
+			selector: map[string]string{"app": "nginx"},
+			expected: true,
+		},
+		{
+			name:     "matching multiple labels",
+			labels:   map[string]string{"app": "nginx", "env": "prod", "tier": "frontend"},
+			selector: map[string]string{"app": "nginx", "env": "prod"},
+			expected: true,
+		},
+		{
+			name:     "non-matching label value",
+			labels:   map[string]string{"app": "nginx"},
+			selector: map[string]string{"app": "apache"},
+			expected: false,
+		},
+		{
+			name:     "missing label key",
+			labels:   map[string]string{"app": "nginx"},
+			selector: map[string]string{"env": "prod"},
+			expected: false,
+		},
+		{
+			name:     "nil object",
+			nilObj:   true,
+			selector: map[string]string{"app": "nginx"},
+			expected: false,
+		},
+		{
+			name:     "no labels on resource",
+			labels:   nil,
+			selector: map[string]string{"app": "nginx"},
+			expected: false,
+		},
+	}
 
-	// Test selector flag exists
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := source.Resource{}
+			if !tt.nilObj {
+				obj := &unstructured.Unstructured{}
+				obj.SetLabels(tt.labels)
+				r.Object = obj
+			}
+			if matchesLabels(r, tt.selector) != tt.expected {
+				t.Errorf("expected matchesLabels()=%v", tt.expected)
+			}
+		})
+	}
+}
+
+func TestMatchesLabelsSelectorFlag(t *testing.T) {
 	f := rootCmd.PersistentFlags().Lookup("selector")
 	if f == nil {
 		t.Fatal("selector flag not found")
@@ -171,5 +231,84 @@ func TestUnknownCommand(t *testing.T) {
 	err := rootCmd.Execute()
 	if err == nil {
 		t.Fatal("expected error for unknown command")
+	}
+}
+
+func writeTestYAML(t *testing.T, dir, filename, content string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, filename), []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestFileCommandNamespaceFilter(t *testing.T) {
+	dir := t.TempDir()
+	writeTestYAML(t, dir, "deploy.yaml", `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app
+  namespace: production
+spec:
+  replicas: 1
+`)
+	// Filter by non-matching namespace → "No resources found"
+	rootCmd.SetArgs([]string{"file", dir, "-n", "staging"})
+	err := rootCmd.Execute()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestFileCommandKindFilter(t *testing.T) {
+	dir := t.TempDir()
+	writeTestYAML(t, dir, "deploy.yaml", `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app
+  namespace: default
+spec:
+  replicas: 1
+`)
+	// Filter by non-matching kind → "No resources found"
+	rootCmd.SetArgs([]string{"file", dir, "-k", "Service"})
+	err := rootCmd.Execute()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestFileCommandSelectorFilter(t *testing.T) {
+	dir := t.TempDir()
+	writeTestYAML(t, dir, "deploy.yaml", `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app
+  namespace: default
+  labels:
+    app: nginx
+spec:
+  replicas: 1
+`)
+	// Filter by non-matching selector → "No resources found"
+	rootCmd.SetArgs([]string{"file", dir, "-l", "app=apache"})
+	err := rootCmd.Execute()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestFileCommandInvalidSelector(t *testing.T) {
+	dir := t.TempDir()
+	writeTestYAML(t, dir, "deploy.yaml", `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app
+spec:
+  replicas: 1
+`)
+	rootCmd.SetArgs([]string{"file", dir, "-l", "invalid-selector"})
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for invalid selector")
 	}
 }
