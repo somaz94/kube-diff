@@ -1,13 +1,29 @@
 package cli
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/somaz94/kube-diff/internal/diff"
 	"github.com/somaz94/kube-diff/internal/source"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
+
+// mockFetcher implements cluster.ResourceFetcher for testing.
+type mockFetcher struct {
+	resources map[string]*unstructured.Unstructured
+}
+
+func (m *mockFetcher) Get(_ context.Context, apiVersion, kind, namespace, name string) (*unstructured.Unstructured, error) {
+	key := fmt.Sprintf("%s/%s/%s/%s", apiVersion, kind, namespace, name)
+	if obj, ok := m.resources[key]; ok {
+		return obj, nil
+	}
+	return nil, fmt.Errorf("not found: %s", key)
+}
 
 func TestExecute(t *testing.T) {
 	// Execute with no args should print help and succeed
@@ -310,5 +326,136 @@ spec:
 	err := rootCmd.Execute()
 	if err == nil {
 		t.Fatal("expected error for invalid selector")
+	}
+}
+
+func newTestObj(apiVersion, kind, name, namespace string, extra map[string]interface{}) *unstructured.Unstructured {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": apiVersion,
+			"kind":       kind,
+			"metadata": map[string]interface{}{
+				"name": name,
+			},
+		},
+	}
+	if namespace != "" {
+		obj.Object["metadata"].(map[string]interface{})["namespace"] = namespace
+	}
+	for k, v := range extra {
+		obj.Object[k] = v
+	}
+	return obj
+}
+
+func TestCompareResourcesUnchanged(t *testing.T) {
+	localObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "value"},
+	})
+	clusterObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "value"},
+	})
+
+	fetcher := &mockFetcher{
+		resources: map[string]*unstructured.Unstructured{
+			"v1/ConfigMap/default/my-cm": clusterObj,
+		},
+	}
+
+	resources := []source.Resource{
+		{APIVersion: "v1", Kind: "ConfigMap", Name: "my-cm", Namespace: "default", Object: localObj},
+	}
+
+	results, err := compareResources(fetcher, resources)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].Status != diff.StatusUnchanged {
+		t.Errorf("expected unchanged, got %s", results[0].Status)
+	}
+}
+
+func TestCompareResourcesChanged(t *testing.T) {
+	localObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "new-value"},
+	})
+	clusterObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "old-value"},
+	})
+
+	fetcher := &mockFetcher{
+		resources: map[string]*unstructured.Unstructured{
+			"v1/ConfigMap/default/my-cm": clusterObj,
+		},
+	}
+
+	resources := []source.Resource{
+		{APIVersion: "v1", Kind: "ConfigMap", Name: "my-cm", Namespace: "default", Object: localObj},
+	}
+
+	results, err := compareResources(fetcher, resources)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if results[0].Status != diff.StatusChanged {
+		t.Errorf("expected changed, got %s", results[0].Status)
+	}
+	if results[0].Diff == "" {
+		t.Error("expected non-empty diff")
+	}
+}
+
+func TestCompareResourcesNew(t *testing.T) {
+	localObj := newTestObj("v1", "ConfigMap", "new-cm", "default", nil)
+
+	fetcher := &mockFetcher{
+		resources: map[string]*unstructured.Unstructured{},
+	}
+
+	resources := []source.Resource{
+		{APIVersion: "v1", Kind: "ConfigMap", Name: "new-cm", Namespace: "default", Object: localObj},
+	}
+
+	results, err := compareResources(fetcher, resources)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if results[0].Status != diff.StatusNew {
+		t.Errorf("expected new, got %s", results[0].Status)
+	}
+}
+
+func TestCompareResourcesMultiple(t *testing.T) {
+	cm := newTestObj("v1", "ConfigMap", "cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"k": "v"},
+	})
+	deploy := newTestObj("apps/v1", "Deployment", "app", "default", nil)
+
+	fetcher := &mockFetcher{
+		resources: map[string]*unstructured.Unstructured{
+			"v1/ConfigMap/default/cm": cm,
+		},
+	}
+
+	resources := []source.Resource{
+		{APIVersion: "v1", Kind: "ConfigMap", Name: "cm", Namespace: "default", Object: cm},
+		{APIVersion: "apps/v1", Kind: "Deployment", Name: "app", Namespace: "default", Object: deploy},
+	}
+
+	results, err := compareResources(fetcher, resources)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	if results[0].Status != diff.StatusUnchanged {
+		t.Errorf("expected cm unchanged, got %s", results[0].Status)
+	}
+	if results[1].Status != diff.StatusNew {
+		t.Errorf("expected deploy new, got %s", results[1].Status)
 	}
 }

@@ -81,26 +81,9 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 		return fmt.Errorf("failed to create cluster client: %w", err)
 	}
 
-	// Compare each resource
-	var results []*diff.DiffResult
-	for _, r := range resources {
-		ctx := context.Background()
-		clusterObj, err := fetcher.Get(ctx, r.APIVersion, r.Kind, r.Namespace, r.Name)
-		if err != nil {
-			// Resource not found in cluster → new
-			result, compareErr := diff.Compare(r.Object, nil)
-			if compareErr != nil {
-				return compareErr
-			}
-			results = append(results, result)
-			continue
-		}
-
-		result, compareErr := diff.Compare(r.Object, clusterObj)
-		if compareErr != nil {
-			return compareErr
-		}
-		results = append(results, result)
+	results, err := compareResources(fetcher, resources)
+	if err != nil {
+		return err
 	}
 
 	// Generate report
@@ -128,6 +111,31 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 		os.Exit(1)
 	}
 	return nil
+}
+
+// compareResources compares local resources against the cluster using the given fetcher.
+func compareResources(fetcher cluster.ResourceFetcher, resources []source.Resource) ([]*diff.DiffResult, error) {
+	var results []*diff.DiffResult
+	for _, r := range resources {
+		ctx := context.Background()
+		clusterObj, err := fetcher.Get(ctx, r.APIVersion, r.Kind, r.Namespace, r.Name)
+		if err != nil {
+			// Resource not found in cluster → new
+			result, compareErr := diff.Compare(r.Object, nil)
+			if compareErr != nil {
+				return nil, compareErr
+			}
+			results = append(results, result)
+			continue
+		}
+
+		result, compareErr := diff.Compare(r.Object, clusterObj)
+		if compareErr != nil {
+			return nil, compareErr
+		}
+		results = append(results, result)
+	}
+	return results, nil
 }
 
 // parseSelector parses a label selector string like "app=nginx,env=prod"

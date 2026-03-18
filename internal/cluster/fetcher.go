@@ -13,6 +13,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+// ResourceFetcher is the interface for retrieving resources from a Kubernetes cluster.
+type ResourceFetcher interface {
+	Get(ctx context.Context, apiVersion, kind, namespace, name string) (*unstructured.Unstructured, error)
+}
+
 // Fetcher retrieves resources from a Kubernetes cluster.
 type Fetcher struct {
 	client dynamic.Interface
