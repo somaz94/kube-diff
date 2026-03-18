@@ -2,42 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.3.0](https://github.com/somaz94/kube-diff/compare/v0.2.1...v0.3.0) (2026-03-18)
 
 ### Features
 
-- Add `--ignore-field` flag to exclude specific field paths from diff (dot notation, e.g., `metadata.annotations.checksum`)
-- Add `--context-lines` (`-C`) flag for configurable unified diff context lines (default: 3)
-- Add `--exit-code` flag to always exit 0 even when changes are detected (useful for CI)
-- Add `--output table` format for concise tabular output
-- `Compare()` now accepts `CompareOptions` for configurable diff behavior
-- `RemoveFields()` utility for removing user-specified field paths from resources
-- Add `--diff-strategy` flag: `live` (default) or `last-applied` to compare against last-applied-configuration annotation
-- Add `watch` command for auto re-run on file changes (`kube-diff watch file ./manifests/`)
-
-### Refactoring
-
-- Extract `ResourceFetcher` interface for better testability
-- Extract `compareResources()` shared function
+- add --diff-strategy flag and watch command ([365c683](https://github.com/somaz94/kube-diff/commit/365c68320e4f67a122ad0047aad8ef75d13ac283))
+- add --ignore-field, --context-lines, --exit-code flags and table output ([ee1cc7c](https://github.com/somaz94/kube-diff/commit/ee1cc7c9b49bd1a5ba3e48c90c0cddb06e2fa8e6))
 
 ### Bug Fixes
 
-- Fix JSON output early return causing exit code 0 even with changes
-- Fix `--summary-only` flag being ignored when used with `-o plain/json/markdown`
-- Fix `resources: {}` false positive in container normalization
-- Remove unused `fieldsToRemove` variable (lint warning)
+- JSON output exit code bug and add Job/DaemonSet normalize tests ([6854cf7](https://github.com/somaz94/kube-diff/commit/6854cf738d1b8c29b2bb90a3c272e00cf0266bf1))
+- resolve lint warnings and summary-only flag bug ([b9a531d](https://github.com/somaz94/kube-diff/commit/b9a531d0d81372ecb655ec1d605ae8e026eb97fd))
 
-### Tests
+### Code Refactoring
 
-- Add tests for `--ignore-field`, `--context-lines`, `CompareOptions`
-- Add tests for `RemoveFields()` (nested, top-level, non-existent, nil, empty parent cleanup)
-- Add tests for `PrintTable()` output
-- Add tests for `compareResources()` with options
-- Add tests for new CLI flags registration
-- Add Job/DaemonSet normalization tests
-- Add `ExtractLastApplied` tests (nil, no annotation, empty, valid, invalid JSON)
-- Add `--diff-strategy last-applied` integration tests
-- Add `watch` command tests (existence, args, interval flag, createSource, isRelevantChange)
+- extract ResourceFetcher interface and compareResources function ([54a6283](https://github.com/somaz94/kube-diff/commit/54a6283213502792b47bb9b412c09e5197fb9a3d))
+
+### Documentation
+
+- update documentation for new features ([8ea967f](https://github.com/somaz94/kube-diff/commit/8ea967f1e4cc621c1f62a8979d2f6e02a6e24e7e))
+- update changelog ([127fe6c](https://github.com/somaz94/kube-diff/commit/127fe6c99e1bb9d04b9695c4d0449780ac0f0efc))
+
+### Continuous Integration
+
+- add table output and advanced features to demo script ([d1b8d14](https://github.com/somaz94/kube-diff/commit/d1b8d1407bb28a725c5396feb7bccd56844867c5))
+
+### Contributors
+
+- somaz
 
 <br/>
 
