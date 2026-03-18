@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.3.1](https://github.com/somaz94/kube-diff/compare/v0.3.0...v0.3.1) (2026-03-18)
+
+### Features
+
+- add --name (-N) flag to filter resources by name ([67a23b7](https://github.com/somaz94/kube-diff/commit/67a23b78e79497b316a7b6223a2e4b9e8c867950))
+
+### Documentation
+
+- add brew upgrade instructions to README ([15e0db5](https://github.com/somaz94/kube-diff/commit/15e0db5c89261587be976015131af3d5a0a9b12a))
+- update changelog ([e7a4ce4](https://github.com/somaz94/kube-diff/commit/e7a4ce4fb0d072bd2f20aef7bfa1d479ef92cc62))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.3.0](https://github.com/somaz94/kube-diff/compare/v0.2.1...v0.3.0) (2026-03-18)
 
 ### Features
