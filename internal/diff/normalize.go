@@ -135,6 +135,12 @@ func normalizePodTemplate(spec map[string]interface{}) {
 	if !ok {
 		return
 	}
+
+	// Remove template.metadata.creationTimestamp (Kubernetes sets this to null)
+	if metadata, ok := tmpl["metadata"].(map[string]interface{}); ok {
+		delete(metadata, "creationTimestamp")
+	}
+
 	podSpec, ok := tmpl["spec"].(map[string]interface{})
 	if !ok {
 		return

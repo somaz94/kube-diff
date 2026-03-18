@@ -12,7 +12,8 @@ A CLI tool that compares local Kubernetes manifests (plain YAML, Helm charts, Ku
 > [Configuration](docs/CONFIGURATION.md) |
 > [Examples](docs/EXAMPLES.md) |
 > [Deployment](docs/DEPLOYMENT.md) |
-> [Development](docs/DEVELOPMENT.md)
+> [Development](docs/DEVELOPMENT.md) |
+> [Use Cases](docs/USE-CASES.md)
 
 <br/>
 
