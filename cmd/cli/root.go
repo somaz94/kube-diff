@@ -21,6 +21,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("context", "", "", "kubernetes context to use")
 	rootCmd.PersistentFlags().StringP("namespace", "n", "", "filter by namespace")
 	rootCmd.PersistentFlags().StringSliceP("kind", "k", nil, "filter by resource kind (e.g., Deployment,Service)")
+	rootCmd.PersistentFlags().StringP("selector", "l", "", "filter by label selector (e.g., app=nginx,env=prod)")
 	rootCmd.PersistentFlags().BoolP("summary-only", "s", false, "show summary only, no diff details")
 	rootCmd.PersistentFlags().StringP("output", "o", "color", "output format: color, plain, json, markdown")
 }

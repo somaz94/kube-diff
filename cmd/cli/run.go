@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/somaz94/kube-diff/internal/cluster"
 	"github.com/somaz94/kube-diff/internal/diff"
@@ -18,6 +19,7 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 	kubeContext, _ := cmd.Flags().GetString("context")
 	namespace, _ := cmd.Flags().GetString("namespace")
 	kinds, _ := cmd.Flags().GetStringSlice("kind")
+	selector, _ := cmd.Flags().GetString("selector")
 	summaryOnly, _ := cmd.Flags().GetBool("summary-only")
 	output, _ := cmd.Flags().GetString("output")
 
@@ -47,6 +49,21 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 		var filtered []source.Resource
 		for _, r := range resources {
 			if kindSet[r.Kind] {
+				filtered = append(filtered, r)
+			}
+		}
+		resources = filtered
+	}
+
+	// Filter by label selector
+	if selector != "" {
+		selectorLabels, err := parseSelector(selector)
+		if err != nil {
+			return fmt.Errorf("invalid selector: %w", err)
+		}
+		var filtered []source.Resource
+		for _, r := range resources {
+			if matchesLabels(r, selectorLabels) {
 				filtered = append(filtered, r)
 			}
 		}
@@ -109,4 +126,48 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 		os.Exit(1)
 	}
 	return nil
+}
+
+// parseSelector parses a label selector string like "app=nginx,env=prod"
+// into a map of key-value pairs.
+func parseSelector(selector string) (map[string]string, error) {
+	labels := make(map[string]string)
+	parts := strings.Split(selector, ",")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		kv := strings.SplitN(part, "=", 2)
+		if len(kv) != 2 {
+			return nil, fmt.Errorf("invalid label selector %q: must be key=value", part)
+		}
+		key := strings.TrimSpace(kv[0])
+		val := strings.TrimSpace(kv[1])
+		if key == "" {
+			return nil, fmt.Errorf("invalid label selector %q: empty key", part)
+		}
+		labels[key] = val
+	}
+	if len(labels) == 0 {
+		return nil, fmt.Errorf("empty label selector")
+	}
+	return labels, nil
+}
+
+// matchesLabels checks if a resource's metadata.labels contain all selector labels.
+func matchesLabels(r source.Resource, selectorLabels map[string]string) bool {
+	if r.Object == nil {
+		return false
+	}
+	labels := r.Object.GetLabels()
+	if labels == nil {
+		return false
+	}
+	for k, v := range selectorLabels {
+		if labels[k] != v {
+			return false
+		}
+	}
+	return true
 }

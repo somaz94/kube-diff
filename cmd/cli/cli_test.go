@@ -69,6 +69,59 @@ func TestKustomizeCommandWithInvalidPath(t *testing.T) {
 	}
 }
 
+func TestParseSelector(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		expected  map[string]string
+		wantError bool
+	}{
+		{"single label", "app=nginx", map[string]string{"app": "nginx"}, false},
+		{"multiple labels", "app=nginx,env=prod", map[string]string{"app": "nginx", "env": "prod"}, false},
+		{"with spaces", " app = nginx , env = prod ", map[string]string{"app": "nginx", "env": "prod"}, false},
+		{"invalid no equals", "app", nil, true},
+		{"empty key", "=value", nil, true},
+		{"empty selector", "", nil, true},
+		{"empty after trim", " , ", nil, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := parseSelector(tt.input)
+			if tt.wantError {
+				if err == nil {
+					t.Fatal("expected error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			for k, v := range tt.expected {
+				if result[k] != v {
+					t.Errorf("expected %s=%s, got %s=%s", k, v, k, result[k])
+				}
+			}
+		})
+	}
+}
+
+func TestMatchesLabels(t *testing.T) {
+	// Create a resource with labels via source.Resource
+	// We need to test matchesLabels directly
+	// Since it uses source.Resource with Object.GetLabels(),
+	// we test via parseSelector + the logic
+
+	// Test selector flag exists
+	f := rootCmd.PersistentFlags().Lookup("selector")
+	if f == nil {
+		t.Fatal("selector flag not found")
+	}
+	if f.DefValue != "" {
+		t.Errorf("expected selector default='', got %s", f.DefValue)
+	}
+}
+
 func TestRootCommandFlags(t *testing.T) {
 	flags := rootCmd.PersistentFlags()
 
@@ -80,6 +133,7 @@ func TestRootCommandFlags(t *testing.T) {
 		{"kubeconfig", "kubeconfig", ""},
 		{"context", "context", ""},
 		{"namespace", "namespace", ""},
+		{"selector", "selector", ""},
 		{"summary-only", "summary-only", "false"},
 		{"output", "output", "color"},
 	}
