@@ -1,0 +1,5 @@
+apiVersion: v2
+name: test-chart
+description: A test chart for integration testing
+version: 0.1.0
+type: application

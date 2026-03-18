@@ -50,6 +50,31 @@ jobs:
           fi
           echo "PASS: Coverage ${COVERAGE}% meets threshold"
 
+  integration-tests:
+    name: Integration Tests
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install Kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Run integration tests
+        run: go test ./... -tags=integration -v -race
+
   build:
     name: Build
     needs: unit-tests
@@ -75,6 +100,7 @@ jobs:
     if: always()
     needs:
       - unit-tests
+      - integration-tests
       - build
     runs-on: ubuntu-latest
     steps:
