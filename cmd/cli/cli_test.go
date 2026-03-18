@@ -198,6 +198,61 @@ func TestMatchesLabelsSelectorFlag(t *testing.T) {
 	}
 }
 
+func TestRootCommandNewFlags(t *testing.T) {
+	flags := rootCmd.PersistentFlags()
+
+	tests := []struct {
+		name     string
+		flag     string
+		defValue string
+	}{
+		{"ignore-field", "ignore-field", "[]"},
+		{"context-lines", "context-lines", "3"},
+		{"exit-code", "exit-code", "false"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := flags.Lookup(tt.flag)
+			if f == nil {
+				t.Fatalf("flag %q not found", tt.flag)
+			}
+			if f.DefValue != tt.defValue {
+				t.Errorf("flag %q default: got %q, want %q", tt.flag, f.DefValue, tt.defValue)
+			}
+		})
+	}
+}
+
+func TestCompareResourcesWithOptions(t *testing.T) {
+	localObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "new-value"},
+	})
+	clusterObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "old-value"},
+	})
+
+	fetcher := &mockFetcher{
+		resources: map[string]*unstructured.Unstructured{
+			"v1/ConfigMap/default/my-cm": clusterObj,
+		},
+	}
+
+	resources := []source.Resource{
+		{APIVersion: "v1", Kind: "ConfigMap", Name: "my-cm", Namespace: "default", Object: localObj},
+	}
+
+	// With ignore-field, data should be ignored → unchanged
+	opts := diff.CompareOptions{ContextLines: 3, IgnoreFields: []string{"data"}}
+	results, err := compareResources(fetcher, resources, opts)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if results[0].Status != diff.StatusUnchanged {
+		t.Errorf("expected unchanged with ignored field, got %s", results[0].Status)
+	}
+}
+
 func TestRootCommandFlags(t *testing.T) {
 	flags := rootCmd.PersistentFlags()
 

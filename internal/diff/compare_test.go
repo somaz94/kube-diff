@@ -189,6 +189,73 @@ func TestComparePreservesAPIVersion(t *testing.T) {
 	}
 }
 
+func TestCompareWithContextLines(t *testing.T) {
+	local := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "new-value", "a": "1", "b": "2", "c": "3"},
+	})
+	cluster := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "old-value", "a": "1", "b": "2", "c": "3"},
+	})
+
+	opts := CompareOptions{ContextLines: 1}
+	result, err := Compare(local, cluster, opts)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Status != StatusChanged {
+		t.Errorf("expected StatusChanged, got %s", result.Status)
+	}
+	if result.Diff == "" {
+		t.Error("expected non-empty diff")
+	}
+}
+
+func TestCompareWithIgnoreFields(t *testing.T) {
+	local := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "value"},
+	})
+	cluster := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "different-value"},
+	})
+
+	// Without ignore → changed
+	result, err := Compare(local, cluster)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Status != StatusChanged {
+		t.Errorf("expected StatusChanged, got %s", result.Status)
+	}
+
+	// With ignore data → unchanged
+	opts := CompareOptions{ContextLines: 3, IgnoreFields: []string{"data"}}
+	result, err = Compare(local, cluster, opts)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Status != StatusUnchanged {
+		t.Errorf("expected StatusUnchanged with ignored field, got %s", result.Status)
+	}
+}
+
+func TestCompareWithIgnoreNestedField(t *testing.T) {
+	local := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key1": "same", "key2": "local-val"},
+	})
+	cluster := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key1": "same", "key2": "cluster-val"},
+	})
+
+	opts := CompareOptions{ContextLines: 3, IgnoreFields: []string{"data.key2"}}
+	result, err := Compare(local, cluster, opts)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Status != StatusUnchanged {
+		t.Errorf("expected StatusUnchanged with nested ignored field, got %s", result.Status)
+	}
+}
+
 func TestToYAML(t *testing.T) {
 	obj := newObj("v1", "ConfigMap", "test", "", nil)
 	yamlStr, err := toYAML(obj)

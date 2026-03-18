@@ -237,6 +237,36 @@ func (s *Summary) PrintSummaryOnly(w io.Writer) {
 	fmt.Fprintln(w, strings.Join(parts, ", "))
 }
 
+// PrintTable writes a table-formatted report to the writer.
+func (s *Summary) PrintTable(w io.Writer) {
+	// Header
+	fmt.Fprintf(w, "%-10s %-20s %-30s %-15s\n", "STATUS", "KIND", "NAME", "NAMESPACE")
+	fmt.Fprintf(w, "%-10s %-20s %-30s %-15s\n", "------", "----", "----", "---------")
+
+	for _, r := range s.Results {
+		status := ""
+		switch r.Status {
+		case diff.StatusNew:
+			status = "NEW"
+		case diff.StatusChanged:
+			status = "CHANGED"
+		case diff.StatusUnchanged:
+			status = "OK"
+		case diff.StatusDeleted:
+			status = "DELETED"
+		}
+		ns := r.Namespace
+		if ns == "" {
+			ns = "-"
+		}
+		fmt.Fprintf(w, "%-10s %-20s %-30s %-15s\n", status, r.Kind, r.Name, ns)
+	}
+
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "Total: %d | Changed: %d | New: %d | Deleted: %d | Unchanged: %d\n",
+		s.Total, s.Changed, s.New, s.Deleted, s.Unchanged)
+}
+
 func colorizeDiff(text string) string {
 	var lines []string
 	for _, line := range strings.Split(text, "\n") {

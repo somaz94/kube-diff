@@ -522,6 +522,100 @@ func TestNormalizeEmptyResources(t *testing.T) {
 	}
 }
 
+func TestRemoveFields(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "ConfigMap",
+			"metadata": map[string]interface{}{
+				"name": "test",
+				"annotations": map[string]interface{}{
+					"keep": "yes",
+					"drop": "no",
+				},
+			},
+			"data": map[string]interface{}{
+				"key1": "value1",
+				"key2": "value2",
+			},
+		},
+	}
+
+	RemoveFields(obj, []string{"metadata.annotations.drop", "data.key2"})
+
+	metadata := obj.Object["metadata"].(map[string]interface{})
+	annotations := metadata["annotations"].(map[string]interface{})
+	if _, ok := annotations["drop"]; ok {
+		t.Error("expected 'drop' annotation to be removed")
+	}
+	if annotations["keep"] != "yes" {
+		t.Error("expected 'keep' annotation to remain")
+	}
+
+	data := obj.Object["data"].(map[string]interface{})
+	if _, ok := data["key2"]; ok {
+		t.Error("expected key2 to be removed")
+	}
+	if data["key1"] != "value1" {
+		t.Error("expected key1 to remain")
+	}
+}
+
+func TestRemoveFieldsTopLevel(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "ConfigMap",
+			"metadata":   map[string]interface{}{"name": "test"},
+			"data":       map[string]interface{}{"key": "val"},
+		},
+	}
+
+	RemoveFields(obj, []string{"data"})
+
+	if _, ok := obj.Object["data"]; ok {
+		t.Error("expected 'data' to be removed")
+	}
+}
+
+func TestRemoveFieldsNonExistent(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "ConfigMap",
+			"metadata":   map[string]interface{}{"name": "test"},
+		},
+	}
+
+	// Should not panic
+	RemoveFields(obj, []string{"nonexistent.field.path"})
+}
+
+func TestRemoveFieldsNil(t *testing.T) {
+	// Should not panic
+	RemoveFields(nil, []string{"some.field"})
+}
+
+func TestRemoveFieldsCleansEmptyParent(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "ConfigMap",
+			"metadata":   map[string]interface{}{"name": "test"},
+			"data": map[string]interface{}{
+				"only-key": "val",
+			},
+		},
+	}
+
+	RemoveFields(obj, []string{"data.only-key"})
+
+	// data should be cleaned up since it's now empty
+	if _, ok := obj.Object["data"]; ok {
+		t.Error("expected empty 'data' parent to be removed")
+	}
+}
+
 func TestNormalizeDoesNotModifyOriginal(t *testing.T) {
 	obj := &unstructured.Unstructured{
 		Object: map[string]interface{}{

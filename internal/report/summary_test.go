@@ -370,6 +370,52 @@ func TestPrintPlainClusterScoped(t *testing.T) {
 	}
 }
 
+func TestPrintTable(t *testing.T) {
+	s := NewSummary(makeResults())
+	var buf bytes.Buffer
+	s.PrintTable(&buf)
+	output := buf.String()
+
+	if !strings.Contains(output, "STATUS") {
+		t.Error("expected STATUS header in table output")
+	}
+	if !strings.Contains(output, "KIND") {
+		t.Error("expected KIND header in table output")
+	}
+	if !strings.Contains(output, "CHANGED") {
+		t.Error("expected CHANGED status in table output")
+	}
+	if !strings.Contains(output, "NEW") {
+		t.Error("expected NEW status in table output")
+	}
+	if !strings.Contains(output, "OK") {
+		t.Error("expected OK status in table output")
+	}
+	if !strings.Contains(output, "DELETED") {
+		t.Error("expected DELETED status in table output")
+	}
+	if !strings.Contains(output, "app-1") {
+		t.Error("expected resource name in table output")
+	}
+	if !strings.Contains(output, "Total: 4") {
+		t.Error("expected total count in table output")
+	}
+}
+
+func TestPrintTableClusterScoped(t *testing.T) {
+	results := []*diff.DiffResult{
+		{Kind: "ClusterRole", Name: "admin", Status: diff.StatusNew},
+	}
+	s := NewSummary(results)
+	var buf bytes.Buffer
+	s.PrintTable(&buf)
+	output := buf.String()
+
+	if !strings.Contains(output, "-") {
+		t.Error("expected '-' for empty namespace")
+	}
+}
+
 func TestPrintJSONResourceFields(t *testing.T) {
 	results := []*diff.DiffResult{
 		{Kind: "Deployment", Name: "app", Namespace: "staging", Status: diff.StatusChanged},

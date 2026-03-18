@@ -19,6 +19,19 @@ const (
 	StatusDeleted   DiffStatus = "deleted"
 )
 
+// CompareOptions holds options for the comparison.
+type CompareOptions struct {
+	ContextLines int      // number of context lines in diff output (default: 3)
+	IgnoreFields []string // field paths to ignore (e.g., "metadata.annotations.some-key")
+}
+
+// DefaultCompareOptions returns the default comparison options.
+func DefaultCompareOptions() CompareOptions {
+	return CompareOptions{
+		ContextLines: 3,
+	}
+}
+
 // DiffResult holds the comparison result for a single resource.
 type DiffResult struct {
 	APIVersion string
@@ -38,7 +51,12 @@ func (d *DiffResult) ResourceKey() string {
 }
 
 // Compare compares a local resource against a cluster resource.
-func Compare(local, cluster *unstructured.Unstructured) (*DiffResult, error) {
+func Compare(local, cluster *unstructured.Unstructured, opts ...CompareOptions) (*DiffResult, error) {
+	opt := DefaultCompareOptions()
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
 	result := &DiffResult{
 		APIVersion: local.GetAPIVersion(),
 		Kind:       local.GetKind(),
@@ -53,6 +71,12 @@ func Compare(local, cluster *unstructured.Unstructured) (*DiffResult, error) {
 
 	normalizedLocal := Normalize(local)
 	normalizedCluster := Normalize(cluster)
+
+	// Remove user-specified ignore fields
+	if len(opt.IgnoreFields) > 0 {
+		RemoveFields(normalizedLocal, opt.IgnoreFields)
+		RemoveFields(normalizedCluster, opt.IgnoreFields)
+	}
 
 	localYAML, err := toYAML(normalizedLocal)
 	if err != nil {
@@ -74,7 +98,7 @@ func Compare(local, cluster *unstructured.Unstructured) (*DiffResult, error) {
 		B:        difflib.SplitLines(localYAML),
 		FromFile: "cluster",
 		ToFile:   "local",
-		Context:  3,
+		Context:  opt.ContextLines,
 	}
 
 	diffText, err := difflib.GetUnifiedDiffString(diff)

@@ -23,5 +23,8 @@ func init() {
 	rootCmd.PersistentFlags().StringSliceP("kind", "k", nil, "filter by resource kind (e.g., Deployment,Service)")
 	rootCmd.PersistentFlags().StringP("selector", "l", "", "filter by label selector (e.g., app=nginx,env=prod)")
 	rootCmd.PersistentFlags().BoolP("summary-only", "s", false, "show summary only, no diff details")
-	rootCmd.PersistentFlags().StringP("output", "o", "color", "output format: color, plain, json, markdown")
+	rootCmd.PersistentFlags().StringP("output", "o", "color", "output format: color, plain, json, markdown, table")
+	rootCmd.PersistentFlags().StringSlice("ignore-field", nil, "field paths to ignore in diff (e.g., metadata.annotations.some-key)")
+	rootCmd.PersistentFlags().IntP("context-lines", "C", 3, "number of context lines in diff output")
+	rootCmd.PersistentFlags().Bool("exit-code", false, "exit 0 even when changes are detected (disable exit 1)")
 }

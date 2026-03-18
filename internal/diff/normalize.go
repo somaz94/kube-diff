@@ -1,6 +1,8 @@
 package diff
 
 import (
+	"strings"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -62,6 +64,37 @@ func Normalize(obj *unstructured.Unstructured) *unstructured.Unstructured {
 	}
 
 	return normalized
+}
+
+// RemoveFields removes the specified field paths from an unstructured object.
+// Field paths use dot notation, e.g., "metadata.annotations.some-key", "spec.replicas".
+func RemoveFields(obj *unstructured.Unstructured, fields []string) {
+	if obj == nil {
+		return
+	}
+	for _, field := range fields {
+		removeNestedField(obj.Object, strings.Split(field, "."))
+	}
+}
+
+// removeNestedField removes a field at the given path from a nested map.
+func removeNestedField(obj map[string]interface{}, path []string) {
+	if len(path) == 0 || obj == nil {
+		return
+	}
+	if len(path) == 1 {
+		delete(obj, path[0])
+		return
+	}
+	next, ok := obj[path[0]].(map[string]interface{})
+	if !ok {
+		return
+	}
+	removeNestedField(next, path[1:])
+	// Clean up empty parent maps
+	if len(next) == 0 {
+		delete(obj, path[0])
+	}
 }
 
 // normalizeDeploymentSpec removes Kubernetes-defaulted fields from Deployment/StatefulSet spec.
