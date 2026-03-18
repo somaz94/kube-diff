@@ -98,7 +98,7 @@ kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" -s || true
 echo ""
 
 # ─── Phase 8: Filtering ─────────────────────────────────────────
-step "Phase 8: Kind filtering"
+step "Phase 8: Filtering (kind & name)"
 
 info "kube-diff file -n $NS -k Deployment"
 kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" -k Deployment || true
@@ -106,6 +106,14 @@ echo ""
 
 info "kube-diff file -n $NS -k ConfigMap,Service"
 kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" -k ConfigMap,Service || true
+echo ""
+
+info "kube-diff file -n $NS -N demo-app (name filter)"
+kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" -N demo-app || true
+echo ""
+
+info "kube-diff file -n $NS -N demo-config,demo-app (multiple names)"
+kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" -N demo-config,demo-app || true
 echo ""
 
 # ─── Phase 9: Advanced features ─────────────────────────────────

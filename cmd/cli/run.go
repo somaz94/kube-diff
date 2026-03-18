@@ -19,6 +19,7 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 	kubeContext, _ := cmd.Flags().GetString("context")
 	namespace, _ := cmd.Flags().GetString("namespace")
 	kinds, _ := cmd.Flags().GetStringSlice("kind")
+	names, _ := cmd.Flags().GetStringSlice("name")
 	selector, _ := cmd.Flags().GetString("selector")
 	summaryOnly, _ := cmd.Flags().GetBool("summary-only")
 	output, _ := cmd.Flags().GetString("output")
@@ -53,6 +54,21 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 		var filtered []source.Resource
 		for _, r := range resources {
 			if kindSet[r.Kind] {
+				filtered = append(filtered, r)
+			}
+		}
+		resources = filtered
+	}
+
+	// Filter by name
+	if len(names) > 0 {
+		nameSet := make(map[string]bool)
+		for _, n := range names {
+			nameSet[n] = true
+		}
+		var filtered []source.Resource
+		for _, r := range resources {
+			if nameSet[r.Name] {
 				filtered = append(filtered, r)
 			}
 		}

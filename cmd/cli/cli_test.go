@@ -207,6 +207,7 @@ func TestRootCommandNewFlags(t *testing.T) {
 		flag     string
 		defValue string
 	}{
+		{"name", "name", "[]"},
 		{"ignore-field", "ignore-field", "[]"},
 		{"context-lines", "context-lines", "3"},
 		{"exit-code", "exit-code", "false"},
@@ -344,6 +345,32 @@ spec:
 `)
 	// Filter by non-matching kind → "No resources found"
 	rootCmd.SetArgs([]string{"file", dir, "-k", "Service"})
+	err := rootCmd.Execute()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestFileCommandNameFilter(t *testing.T) {
+	dir := t.TempDir()
+	writeTestYAML(t, dir, "resources.yaml", `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-config
+  namespace: default
+data:
+  key: value
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: other-config
+  namespace: default
+data:
+  key: value
+`)
+	// Filter by non-matching name → "No resources found"
+	rootCmd.SetArgs([]string{"file", dir, "-N", "nonexistent"})
 	err := rootCmd.Execute()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
