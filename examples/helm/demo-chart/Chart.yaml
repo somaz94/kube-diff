@@ -1,0 +1,5 @@
+apiVersion: v2
+name: demo-chart
+description: Demo Helm chart for kube-diff examples
+version: 0.1.0
+type: application

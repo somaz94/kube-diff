@@ -10,6 +10,7 @@ A CLI tool that compares local Kubernetes manifests (plain YAML, Helm charts, Ku
 > For detailed documentation, see the [docs/](docs/) folder:
 > [Usage](docs/USAGE.md) |
 > [Configuration](docs/CONFIGURATION.md) |
+> [Examples](docs/EXAMPLES.md) |
 > [Deployment](docs/DEPLOYMENT.md) |
 > [Development](docs/DEVELOPMENT.md)
 

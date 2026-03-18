@@ -1,0 +1,8 @@
+replicaCount: 2
+image: nginx:1.25
+namespace: kube-diff-demo
+
+config:
+  APP_ENV: production
+  LOG_LEVEL: info
+  MAX_CONNECTIONS: "100"

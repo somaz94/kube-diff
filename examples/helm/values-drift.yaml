@@ -1,0 +1,10 @@
+# Values that intentionally differ from cluster state (for drift demo)
+replicaCount: 3
+image: nginx:1.26
+namespace: kube-diff-demo
+
+config:
+  APP_ENV: staging
+  LOG_LEVEL: debug
+  MAX_CONNECTIONS: "200"
+  NEW_KEY: "added"

@@ -1,4 +1,4 @@
-.PHONY: build clean test test-unit cover cover-html bench lint fmt vet help
+.PHONY: build clean test test-unit test-integration cover cover-html bench lint fmt vet demo demo-clean help
 
 BINARY_NAME=kube-diff
 VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -20,6 +20,9 @@ test: test-unit ## Run unit tests (alias)
 
 test-unit: ## Run unit tests with coverage
 	go test ./... -v -race -cover
+
+test-integration: ## Run integration tests (requires helm, kustomize)
+	go test ./... -tags=integration -v -race
 
 ## Coverage
 
@@ -45,6 +48,14 @@ fmt: ## Format code
 
 vet: ## Run go vet
 	go vet ./...
+
+## Demo
+
+demo: ## Run demo (deploy resources, compare with kube-diff)
+	@./scripts/demo.sh
+
+demo-clean: ## Clean up demo resources from cluster
+	@./scripts/demo-clean.sh
 
 ## Help
 

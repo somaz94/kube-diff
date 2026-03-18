@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: kube-diff-demo
+
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: Deployment
+      name: demo-app
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 3
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: nginx:1.26
+
+  - target:
+      kind: ConfigMap
+      name: demo-config
+    patch: |
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: debug
+      - op: add
+        path: /data/NEW_KEY
+        value: added
