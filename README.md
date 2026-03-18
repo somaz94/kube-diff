@@ -42,9 +42,6 @@ A CLI tool that compares local Kubernetes manifests (plain YAML, Helm charts, Ku
 # Homebrew
 brew install somaz94/tap/kube-diff
 
-# Upgrade
-brew update && brew upgrade kube-diff
-
 # Krew (kubectl plugin)
 kubectl krew install diff2
 
@@ -60,7 +57,7 @@ go install github.com/somaz94/kube-diff/cmd@latest
 
 ```bash
 # Homebrew
-brew upgrade kube-diff
+brew update && brew upgrade kube-diff
 
 # Krew
 kubectl krew upgrade diff2
