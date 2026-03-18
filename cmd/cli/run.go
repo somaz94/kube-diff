@@ -111,7 +111,9 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 	} else {
 		switch output {
 		case "json":
-			return summary.PrintJSON(os.Stdout)
+			if err := summary.PrintJSON(os.Stdout); err != nil {
+				return err
+			}
 		case "plain":
 			summary.PrintPlain(os.Stdout)
 		case "markdown":

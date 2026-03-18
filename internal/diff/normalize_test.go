@@ -384,6 +384,144 @@ func TestDefaultImagePullPolicy(t *testing.T) {
 	}
 }
 
+func TestNormalizeJobDefaults(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "batch/v1",
+			"kind":       "Job",
+			"metadata":   map[string]interface{}{"name": "my-job"},
+			"spec": map[string]interface{}{
+				"backoffLimit":  int64(6),
+				"completionMode": "NonIndexed",
+				"suspend":       false,
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{
+						"containers": []interface{}{
+							map[string]interface{}{
+								"name":  "worker",
+								"image": "busybox",
+								"terminationMessagePath":   "/dev/termination-log",
+								"terminationMessagePolicy": "File",
+							},
+						},
+						"restartPolicy": "Never",
+					},
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	spec := result.Object["spec"].(map[string]interface{})
+
+	if _, ok := spec["backoffLimit"]; ok {
+		t.Error("expected backoffLimit to be removed")
+	}
+	if _, ok := spec["completionMode"]; ok {
+		t.Error("expected completionMode to be removed")
+	}
+	if _, ok := spec["suspend"]; ok {
+		t.Error("expected suspend to be removed")
+	}
+}
+
+func TestNormalizeDaemonSetDefaults(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "DaemonSet",
+			"metadata":   map[string]interface{}{"name": "my-ds"},
+			"spec": map[string]interface{}{
+				"revisionHistoryLimit": int64(10),
+				"updateStrategy": map[string]interface{}{
+					"type": "RollingUpdate",
+				},
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{
+						"containers": []interface{}{
+							map[string]interface{}{
+								"name":  "agent",
+								"image": "fluentd:v1.16",
+								"terminationMessagePath":   "/dev/termination-log",
+								"terminationMessagePolicy": "File",
+							},
+						},
+						"dnsPolicy":     "ClusterFirst",
+						"restartPolicy": "Always",
+					},
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	spec := result.Object["spec"].(map[string]interface{})
+
+	if _, ok := spec["revisionHistoryLimit"]; ok {
+		t.Error("expected revisionHistoryLimit to be removed")
+	}
+	if _, ok := spec["updateStrategy"]; ok {
+		t.Error("expected default RollingUpdate updateStrategy to be removed")
+	}
+
+	tmplSpec := spec["template"].(map[string]interface{})["spec"].(map[string]interface{})
+	container := tmplSpec["containers"].([]interface{})[0].(map[string]interface{})
+	if _, ok := container["terminationMessagePath"]; ok {
+		t.Error("expected terminationMessagePath to be removed")
+	}
+}
+
+func TestNormalizeDaemonSetNonDefaultStrategy(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "DaemonSet",
+			"metadata":   map[string]interface{}{"name": "my-ds"},
+			"spec": map[string]interface{}{
+				"updateStrategy": map[string]interface{}{
+					"type": "OnDelete",
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	spec := result.Object["spec"].(map[string]interface{})
+	if _, ok := spec["updateStrategy"]; !ok {
+		t.Error("expected non-default OnDelete updateStrategy to be kept")
+	}
+}
+
+func TestNormalizeEmptyResources(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "Deployment",
+			"metadata":   map[string]interface{}{"name": "app"},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{
+						"containers": []interface{}{
+							map[string]interface{}{
+								"name":      "app",
+								"image":     "nginx:1.25",
+								"resources": map[string]interface{}{},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	tmplSpec := result.Object["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})
+	container := tmplSpec["containers"].([]interface{})[0].(map[string]interface{})
+	if _, ok := container["resources"]; ok {
+		t.Error("expected empty resources to be removed")
+	}
+}
+
 func TestNormalizeDoesNotModifyOriginal(t *testing.T) {
 	obj := &unstructured.Unstructured{
 		Object: map[string]interface{}{
