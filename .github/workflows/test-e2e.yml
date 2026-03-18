@@ -1,0 +1,51 @@
+name: E2E Tests
+
+on:
+  push:
+    paths-ignore:
+      - '.github/workflows/**'
+      - '**/*.md'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-e2e:
+    name: E2E Demo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Build binary
+        run: |
+          make build
+          sudo mv kube-diff /usr/local/bin/
+
+      - name: Install kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+
+      - name: Create kind cluster
+        run: kind create cluster --wait 60s
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install Kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Run e2e demo
+        run: make demo
+
+      - name: Clean up demo
+        run: make demo-clean

@@ -1,4 +1,4 @@
-.PHONY: build clean test test-unit test-integration cover cover-html bench lint fmt vet demo demo-clean help
+.PHONY: build clean test test-unit test-integration cover cover-html bench lint fmt vet demo demo-clean demo-all help
 
 BINARY_NAME=kube-diff
 VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -56,6 +56,8 @@ demo: ## Run demo (deploy resources, compare with kube-diff)
 
 demo-clean: ## Clean up demo resources from cluster
 	@./scripts/demo-clean.sh
+
+demo-all: demo demo-clean ## Run demo and clean up automatically
 
 ## Help
 
