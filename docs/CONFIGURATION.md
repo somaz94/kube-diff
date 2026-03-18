@@ -24,7 +24,10 @@ Reference for all kube-diff configuration options.
 | `--namespace` | `-n` | string | (all) | Filter by namespace |
 | `--kind` | `-k` | []string | (all) | Filter by resource kind (comma-separated) |
 | `--summary-only` | `-s` | bool | `false` | Show summary only, no diff details |
-| `--output` | `-o` | string | `color` | Output format: `color`, `plain`, `json`, `markdown` |
+| `--output` | `-o` | string | `color` | Output format: `color`, `plain`, `json`, `markdown`, `table` |
+| `--ignore-field` | | []string | (none) | Field paths to ignore in diff (dot notation, repeatable) |
+| `--context-lines` | `-C` | int | `3` | Number of context lines in unified diff output |
+| `--exit-code` | | bool | `false` | Always exit 0 even when changes are detected |
 
 ### Helm-specific Flags
 

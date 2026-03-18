@@ -41,7 +41,10 @@ These flags are available on all commands:
 | `--kind` | `-k` | All | Filter by resource kind (comma-separated) |
 | `--selector` | `-l` | All | Filter by label selector (e.g., `app=nginx,env=prod`) |
 | `--summary-only` | `-s` | `false` | Show summary only, no diff details |
-| `--output` | `-o` | `color` | Output format: `color`, `plain`, `json`, `markdown` |
+| `--output` | `-o` | `color` | Output format: `color`, `plain`, `json`, `markdown`, `table` |
+| `--ignore-field` | | (none) | Field paths to ignore in diff (dot notation, repeatable) |
+| `--context-lines` | `-C` | `3` | Number of context lines in unified diff output |
+| `--exit-code` | | `false` | Always exit 0 even when changes are detected |
 
 <br/>
 
@@ -226,6 +229,26 @@ kube-diff file ./manifests/ -o markdown
 
 <br/>
 
+### Table
+
+Compact tabular output showing status, kind, name, and namespace.
+
+```bash
+kube-diff file ./manifests/ -o table
+```
+
+```
+STATUS     KIND                 NAME                           NAMESPACE
+------     ----                 ----                           ---------
+NEW        ConfigMap            app-config                     production
+CHANGED    Deployment           web-app                        production
+OK         Service              web-svc                        production
+
+Total: 3 | Changed: 1 | New: 1 | Deleted: 0 | Unchanged: 1
+```
+
+<br/>
+
 ## Filtering
 
 ### By namespace
@@ -266,6 +289,33 @@ kube-diff file ./manifests/ -l app=nginx,env=prod
 kube-diff file ./manifests/ -n production -k Deployment,Service -l app=web
 ```
 
+### Ignore specific fields
+
+Exclude fields from diff comparison using dot notation:
+
+```bash
+# Ignore a specific annotation
+kube-diff file ./manifests/ --ignore-field metadata.annotations.checksum/config
+
+# Ignore multiple fields
+kube-diff file ./manifests/ --ignore-field metadata.annotations.checksum --ignore-field spec.replicas
+
+# Useful for fields that vary between environments
+kube-diff helm ./chart/ --ignore-field metadata.labels.chart --ignore-field metadata.labels.heritage
+```
+
+### Custom context lines
+
+Control the number of context lines shown around changes:
+
+```bash
+# Show 5 lines of context (default: 3)
+kube-diff file ./manifests/ -C 5
+
+# Minimal context
+kube-diff file ./manifests/ -C 1
+```
+
 <br/>
 
 ## Exit Codes
@@ -276,6 +326,8 @@ kube-diff file ./manifests/ -n production -k Deployment,Service -l app=web
 | `1` | Changes detected (diff exists) | Can trigger review/alert |
 | `2` | Error occurred (invalid input, cluster unreachable, etc.) | Pipeline fails |
 
+> **Tip**: Use `--exit-code` to always exit 0 even when changes are detected. This is useful in CI pipelines where you want to report drift without failing the pipeline.
+
 ### Example: CI gate
 
 ```bash
@@ -285,6 +337,9 @@ if [ $? -eq 1 ]; then
   echo "Drift detected!"
   exit 1
 fi
+
+# Report drift without failing
+kube-diff file ./manifests/ -o json --exit-code
 ```
 
 <br/>

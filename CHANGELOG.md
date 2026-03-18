@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Features
+
+- Add `--ignore-field` flag to exclude specific field paths from diff (dot notation, e.g., `metadata.annotations.checksum`)
+- Add `--context-lines` (`-C`) flag for configurable unified diff context lines (default: 3)
+- Add `--exit-code` flag to always exit 0 even when changes are detected (useful for CI)
+- Add `--output table` format for concise tabular output
+- `Compare()` now accepts `CompareOptions` for configurable diff behavior
+- `RemoveFields()` utility for removing user-specified field paths from resources
+
+### Refactoring
+
+- Extract `ResourceFetcher` interface for better testability
+- Extract `compareResources()` shared function
+
+### Bug Fixes
+
+- Fix JSON output early return causing exit code 0 even with changes
+- Fix `--summary-only` flag being ignored when used with `-o plain/json/markdown`
+- Fix `resources: {}` false positive in container normalization
+- Remove unused `fieldsToRemove` variable (lint warning)
+
+### Tests
+
+- Add tests for `--ignore-field`, `--context-lines`, `CompareOptions`
+- Add tests for `RemoveFields()` (nested, top-level, non-existent, nil, empty parent cleanup)
+- Add tests for `PrintTable()` output
+- Add tests for `compareResources()` with options
+- Add tests for new CLI flags registration
+- Add Job/DaemonSet normalization tests
+
+<br/>
+
 ## [v0.2.1](https://github.com/somaz94/kube-diff/compare/v0.2.0...v0.2.1) (2026-03-18)
 
 ### Bug Fixes

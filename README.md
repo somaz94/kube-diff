@@ -25,8 +25,10 @@ A CLI tool that compares local Kubernetes manifests (plain YAML, Helm charts, Ku
 | **Output** | Raw unified diff | Per-resource colorized diff + summary |
 | **New resources** | Full content dump | **NEW** label |
 | **Deleted detection** | Not supported | Detects resources only in cluster |
-| **CI integration** | Exit code only | JSON / Markdown report output |
+| **CI integration** | Exit code only | JSON / Markdown / Table report output |
 | **Filtering** | None | Namespace, kind, label selector filter |
+| **Field ignore** | Not supported | `--ignore-field` to exclude specific paths |
+| **Context lines** | Fixed | Configurable `--context-lines` |
 
 <br/>
 
@@ -73,6 +75,15 @@ kube-diff helm ./my-chart --values values-prod.yaml --release my-release
 
 # Compare Kustomize overlay
 kube-diff kustomize ./overlays/production
+
+# Ignore specific fields in diff
+kube-diff file ./manifests/ --ignore-field metadata.annotations.checksum
+
+# Table output with custom context lines
+kube-diff file ./manifests/ -o table -C 5
+
+# Don't fail CI on changes
+kube-diff file ./manifests/ --exit-code
 ```
 
 ### Example Output
@@ -98,7 +109,7 @@ Summary: 3 resources — 1 changed, 1 new, 1 unchanged
 | Code | Meaning |
 |------|---------|
 | `0` | No changes detected |
-| `1` | Changes detected |
+| `1` | Changes detected (use `--exit-code` to always exit 0) |
 | `2` | Error occurred |
 
 <br/>

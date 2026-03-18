@@ -130,6 +130,7 @@ kube-diff kustomize examples/kustomize/overlays/dev/ -n kube-diff-demo
 kube-diff file examples/file/ -n kube-diff-demo -o json
 kube-diff file examples/file/ -n kube-diff-demo -o markdown
 kube-diff file examples/file/ -n kube-diff-demo -o plain
+kube-diff file examples/file/ -n kube-diff-demo -o table
 kube-diff file examples/file/ -n kube-diff-demo -s  # summary only
 ```
 
@@ -140,7 +141,34 @@ kube-diff file examples/file/ -n kube-diff-demo -k Deployment
 kube-diff file examples/file/ -n kube-diff-demo -k ConfigMap,Service
 ```
 
-### 8. Clean up
+### 8. Ignore fields
+
+```bash
+# Ignore a specific annotation added by CI
+kube-diff file examples/file/ -n kube-diff-demo --ignore-field metadata.annotations.checksum/config
+
+# Ignore replicas (managed by HPA)
+kube-diff file examples/file/ -n kube-diff-demo --ignore-field spec.replicas
+```
+
+### 9. Context lines
+
+```bash
+# Show 5 lines of context around changes
+kube-diff file examples/file/ -n kube-diff-demo -C 5
+
+# Minimal context (1 line)
+kube-diff file examples/file/ -n kube-diff-demo -C 1
+```
+
+### 10. Exit code control
+
+```bash
+# Report drift without failing (always exit 0)
+kube-diff file examples/file/ -n kube-diff-demo --exit-code
+```
+
+### 11. Clean up
 
 ```bash
 make demo-clean
@@ -188,6 +216,19 @@ Summary: 4 resources — 4 unchanged
 ✓ OK     Service/demo-app (namespace: kube-diff-demo)
 
 Summary: 4 resources — 2 changed, 2 unchanged
+```
+
+### Table output
+
+```
+STATUS     KIND                 NAME                           NAMESPACE
+------     ----                 ----                           ---------
+OK         Namespace            kube-diff-demo                 -
+CHANGED    ConfigMap            demo-config                    kube-diff-demo
+CHANGED    Deployment           demo-app                       kube-diff-demo
+OK         Service              demo-app                       kube-diff-demo
+
+Total: 4 | Changed: 2 | New: 0 | Deleted: 0 | Unchanged: 2
 ```
 
 ### JSON output
