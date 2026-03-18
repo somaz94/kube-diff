@@ -25,7 +25,7 @@ A CLI tool that compares local Kubernetes manifests (plain YAML, Helm charts, Ku
 | **New resources** | Full content dump | **NEW** label |
 | **Deleted detection** | Not supported | Detects resources only in cluster |
 | **CI integration** | Exit code only | JSON / Markdown report output |
-| **Filtering** | None | Namespace, kind filter |
+| **Filtering** | None | Namespace, kind, label selector filter |
 
 <br/>
 
@@ -83,17 +83,6 @@ Summary: 3 resources — 1 changed, 1 new, 1 unchanged
 | `0` | No changes detected |
 | `1` | Changes detected |
 | `2` | Error occurred |
-
-<br/>
-
-## Roadmap
-
-- [x] **Phase 1 (MVP)**: Plain YAML file input, cluster comparison, colorized diff, summary
-- [x] **Phase 2**: Helm chart support (`helm template` integration)
-- [x] **Phase 3**: Kustomize support (`kustomize build` integration)
-- [x] **Phase 4**: CI report output (JSON, Markdown)
-- [ ] **Phase 5**: GitHub Action wrapper (`somaz94/kube-diff-action`)
-- [ ] **Phase 6**: Label selector filtering
 
 <br/>
 
