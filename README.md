@@ -88,9 +88,9 @@ Summary: 3 resources — 1 changed, 1 new, 1 unchanged
 ## Roadmap
 
 - [x] **Phase 1 (MVP)**: Plain YAML file input, cluster comparison, colorized diff, summary
-- [ ] **Phase 2**: Helm chart support (`helm template` integration)
-- [ ] **Phase 3**: Kustomize support (`kustomize build` integration)
-- [ ] **Phase 4**: CI report output (JSON, Markdown)
+- [x] **Phase 2**: Helm chart support (`helm template` integration)
+- [x] **Phase 3**: Kustomize support (`kustomize build` integration)
+- [x] **Phase 4**: CI report output (JSON, Markdown)
 - [ ] **Phase 5**: GitHub Action wrapper (`somaz94/kube-diff-action`)
 - [ ] **Phase 6**: Label selector filtering
 

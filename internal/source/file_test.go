@@ -244,3 +244,101 @@ func TestFileSourceNonExistentPath(t *testing.T) {
 		t.Fatal("expected error for nonexistent path")
 	}
 }
+
+func TestFileSourceSkipsNonYAMLFiles(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "data.json"), []byte(`{"key": "value"}`), 0644)
+	os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("hello"), 0644)
+	os.WriteFile(filepath.Join(dir, "deploy.yaml"), []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm1
+`), 0644)
+
+	src := NewFileSource(dir)
+	resources, err := src.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resources) != 1 {
+		t.Fatalf("expected 1 resource (only .yaml), got %d", len(resources))
+	}
+}
+
+func TestFileSourceEmptyDirectory(t *testing.T) {
+	dir := t.TempDir()
+
+	src := NewFileSource(dir)
+	resources, err := src.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resources) != 0 {
+		t.Fatalf("expected 0 resources for empty dir, got %d", len(resources))
+	}
+}
+
+func TestFileSourceEmptyYAMLFile(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "empty.yaml"), []byte(""), 0644)
+
+	src := NewFileSource(dir)
+	resources, err := src.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resources) != 0 {
+		t.Fatalf("expected 0 resources for empty YAML, got %d", len(resources))
+	}
+}
+
+func TestFileSourceMultiDocumentFile(t *testing.T) {
+	dir := t.TempDir()
+	content := `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-1
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-1
+`
+	os.WriteFile(filepath.Join(dir, "multi.yaml"), []byte(content), 0644)
+
+	src := NewFileSource(dir)
+	resources, err := src.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resources) != 3 {
+		t.Fatalf("expected 3 resources from multi-doc, got %d", len(resources))
+	}
+}
+
+func TestParseYAMLWithComments(t *testing.T) {
+	yamlContent := `# This is a comment
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-with-comments
+  # another comment
+data:
+  key: value
+`
+	resources, err := parseYAML(strings.NewReader(yamlContent))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(resources) != 1 {
+		t.Fatalf("expected 1 resource, got %d", len(resources))
+	}
+	if resources[0].Name != "cm-with-comments" {
+		t.Errorf("expected cm-with-comments, got %s", resources[0].Name)
+	}
+}

@@ -236,3 +236,71 @@ func TestColorizeDiff(t *testing.T) {
 		t.Error("expected cyan color for hunk headers")
 	}
 }
+
+func TestPrintColorDeletedResource(t *testing.T) {
+	results := []*diff.DiffResult{
+		{Kind: "Secret", Name: "old-secret", Namespace: "prod", Status: diff.StatusDeleted},
+	}
+	s := NewSummary(results)
+	var buf bytes.Buffer
+	s.PrintColor(&buf)
+	output := buf.String()
+
+	if !strings.Contains(output, "DELETED") {
+		t.Error("expected DELETED marker in output")
+	}
+	if !strings.Contains(output, "old-secret") {
+		t.Error("expected resource name in output")
+	}
+	if !strings.Contains(output, "1 deleted") {
+		t.Error("expected deleted count in summary")
+	}
+}
+
+func TestPrintColorOnlyUnchanged(t *testing.T) {
+	results := []*diff.DiffResult{
+		{Kind: "Service", Name: "svc-1", Status: diff.StatusUnchanged},
+		{Kind: "Service", Name: "svc-2", Status: diff.StatusUnchanged},
+	}
+	s := NewSummary(results)
+	var buf bytes.Buffer
+	s.PrintColor(&buf)
+	output := buf.String()
+
+	if !strings.Contains(output, "2 resources") {
+		t.Error("expected 2 resources in summary")
+	}
+	if !strings.Contains(output, "2 unchanged") {
+		t.Error("expected 2 unchanged in summary")
+	}
+	if strings.Contains(output, "changed") && !strings.Contains(output, "unchanged") {
+		t.Error("should not show 'changed' when only unchanged exist")
+	}
+}
+
+func TestPrintJSONResourceFields(t *testing.T) {
+	results := []*diff.DiffResult{
+		{Kind: "Deployment", Name: "app", Namespace: "staging", Status: diff.StatusChanged},
+		{Kind: "ClusterRole", Name: "admin", Status: diff.StatusNew},
+	}
+	s := NewSummary(results)
+	var buf bytes.Buffer
+	if err := s.PrintJSON(&buf); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var report map[string]interface{}
+	json.Unmarshal(buf.Bytes(), &report)
+
+	resources := report["resources"].([]interface{})
+	// Namespaced resource
+	first := resources[0].(map[string]interface{})
+	if first["namespace"] != "staging" {
+		t.Errorf("expected namespace=staging, got %v", first["namespace"])
+	}
+	// Cluster-scoped resource should omit namespace
+	second := resources[1].(map[string]interface{})
+	if _, ok := second["namespace"]; ok && second["namespace"] != "" {
+		t.Error("expected empty/omitted namespace for cluster-scoped resource")
+	}
+}

@@ -129,6 +129,57 @@ func TestResourceKeyWithoutNamespace(t *testing.T) {
 	}
 }
 
+func TestCompareDeletedResource(t *testing.T) {
+	cluster := newObj("v1", "Secret", "old-secret", "default", nil)
+
+	// For deleted resources, local is the cluster resource with StatusDeleted
+	result := &DiffResult{
+		APIVersion: cluster.GetAPIVersion(),
+		Kind:       cluster.GetKind(),
+		Name:       cluster.GetName(),
+		Namespace:  cluster.GetNamespace(),
+		Status:     StatusDeleted,
+	}
+
+	if result.Status != StatusDeleted {
+		t.Errorf("expected StatusDeleted, got %s", result.Status)
+	}
+	if result.Kind != "Secret" {
+		t.Errorf("expected Secret, got %s", result.Kind)
+	}
+}
+
+func TestCompareLocalNilIsHandled(t *testing.T) {
+	// Compare with both local provided and cluster nil → new
+	local := newObj("v1", "ConfigMap", "test", "", nil)
+	result, err := Compare(local, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Status != StatusNew {
+		t.Errorf("expected StatusNew, got %s", result.Status)
+	}
+	if result.Diff != "" {
+		t.Error("expected empty diff for new resource")
+	}
+}
+
+func TestComparePreservesAPIVersion(t *testing.T) {
+	local := newObj("networking.k8s.io/v1", "NetworkPolicy", "deny-all", "prod", nil)
+	cluster := newObj("networking.k8s.io/v1", "NetworkPolicy", "deny-all", "prod", nil)
+
+	result, err := Compare(local, cluster)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.APIVersion != "networking.k8s.io/v1" {
+		t.Errorf("expected networking.k8s.io/v1, got %s", result.APIVersion)
+	}
+	if result.Status != StatusUnchanged {
+		t.Errorf("expected StatusUnchanged, got %s", result.Status)
+	}
+}
+
 func TestToYAML(t *testing.T) {
 	obj := newObj("v1", "ConfigMap", "test", "", nil)
 	yamlStr, err := toYAML(obj)
