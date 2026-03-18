@@ -116,6 +116,274 @@ func TestNormalizeNilInput(t *testing.T) {
 	}
 }
 
+func TestNormalizeDeploymentDefaults(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "Deployment",
+			"metadata": map[string]interface{}{
+				"name": "app",
+			},
+			"spec": map[string]interface{}{
+				"replicas":                int64(2),
+				"progressDeadlineSeconds": int64(600),
+				"revisionHistoryLimit":    int64(10),
+				"strategy": map[string]interface{}{
+					"type": "RollingUpdate",
+					"rollingUpdate": map[string]interface{}{
+						"maxSurge":       "25%",
+						"maxUnavailable": "25%",
+					},
+				},
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{
+						"containers": []interface{}{
+							map[string]interface{}{
+								"name":                     "app",
+								"image":                    "nginx:1.25",
+								"imagePullPolicy":          "IfNotPresent",
+								"terminationMessagePath":   "/dev/termination-log",
+								"terminationMessagePolicy": "File",
+								"ports": []interface{}{
+									map[string]interface{}{
+										"containerPort": int64(80),
+										"protocol":      "TCP",
+									},
+								},
+							},
+						},
+						"dnsPolicy":                    "ClusterFirst",
+						"restartPolicy":                 "Always",
+						"schedulerName":                  "default-scheduler",
+						"securityContext":                map[string]interface{}{},
+						"terminationGracePeriodSeconds":  int64(30),
+					},
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	spec := result.Object["spec"].(map[string]interface{})
+
+	if spec["replicas"] != int64(2) {
+		t.Error("expected replicas to be kept")
+	}
+	if _, ok := spec["progressDeadlineSeconds"]; ok {
+		t.Error("expected progressDeadlineSeconds to be removed")
+	}
+	if _, ok := spec["revisionHistoryLimit"]; ok {
+		t.Error("expected revisionHistoryLimit to be removed")
+	}
+	if _, ok := spec["strategy"]; ok {
+		t.Error("expected default strategy to be removed")
+	}
+
+	tmplSpec := spec["template"].(map[string]interface{})["spec"].(map[string]interface{})
+	if _, ok := tmplSpec["dnsPolicy"]; ok {
+		t.Error("expected dnsPolicy to be removed")
+	}
+	if _, ok := tmplSpec["restartPolicy"]; ok {
+		t.Error("expected restartPolicy to be removed")
+	}
+	if _, ok := tmplSpec["schedulerName"]; ok {
+		t.Error("expected schedulerName to be removed")
+	}
+	if _, ok := tmplSpec["securityContext"]; ok {
+		t.Error("expected empty securityContext to be removed")
+	}
+	if _, ok := tmplSpec["terminationGracePeriodSeconds"]; ok {
+		t.Error("expected terminationGracePeriodSeconds to be removed")
+	}
+
+	container := tmplSpec["containers"].([]interface{})[0].(map[string]interface{})
+	if _, ok := container["imagePullPolicy"]; ok {
+		t.Error("expected default imagePullPolicy to be removed")
+	}
+	if _, ok := container["terminationMessagePath"]; ok {
+		t.Error("expected terminationMessagePath to be removed")
+	}
+	if _, ok := container["terminationMessagePolicy"]; ok {
+		t.Error("expected terminationMessagePolicy to be removed")
+	}
+
+	port := container["ports"].([]interface{})[0].(map[string]interface{})
+	if _, ok := port["protocol"]; ok {
+		t.Error("expected default TCP protocol to be removed")
+	}
+	if port["containerPort"] != int64(80) {
+		t.Error("expected containerPort to be kept")
+	}
+}
+
+func TestNormalizeDeploymentNonDefaultStrategy(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "Deployment",
+			"metadata":   map[string]interface{}{"name": "app"},
+			"spec": map[string]interface{}{
+				"strategy": map[string]interface{}{
+					"type": "Recreate",
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	spec := result.Object["spec"].(map[string]interface{})
+	if _, ok := spec["strategy"]; !ok {
+		t.Error("expected non-default strategy (Recreate) to be kept")
+	}
+}
+
+func TestNormalizeServiceDefaults(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "Service",
+			"metadata":   map[string]interface{}{"name": "svc"},
+			"spec": map[string]interface{}{
+				"clusterIP":             "10.96.1.1",
+				"clusterIPs":            []interface{}{"10.96.1.1"},
+				"internalTrafficPolicy": "Cluster",
+				"ipFamilies":            []interface{}{"IPv4"},
+				"ipFamilyPolicy":        "SingleStack",
+				"sessionAffinity":       "None",
+				"type":                  "ClusterIP",
+				"selector":              map[string]interface{}{"app": "demo"},
+				"ports": []interface{}{
+					map[string]interface{}{
+						"port":       int64(80),
+						"targetPort": int64(80),
+						"protocol":   "TCP",
+					},
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	spec := result.Object["spec"].(map[string]interface{})
+
+	for _, field := range []string{"clusterIP", "clusterIPs", "internalTrafficPolicy", "ipFamilies", "ipFamilyPolicy", "sessionAffinity"} {
+		if _, ok := spec[field]; ok {
+			t.Errorf("expected %s to be removed", field)
+		}
+	}
+	if spec["type"] != "ClusterIP" {
+		t.Error("expected type to be kept")
+	}
+	if spec["selector"] == nil {
+		t.Error("expected selector to be kept")
+	}
+
+	port := spec["ports"].([]interface{})[0].(map[string]interface{})
+	if _, ok := port["protocol"]; ok {
+		t.Error("expected default TCP protocol to be removed from port")
+	}
+}
+
+func TestNormalizeNamespaceDefaults(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "Namespace",
+			"metadata": map[string]interface{}{
+				"name": "test-ns",
+				"labels": map[string]interface{}{
+					"kubernetes.io/metadata.name": "test-ns",
+				},
+			},
+			"spec": map[string]interface{}{
+				"finalizers": []interface{}{"kubernetes"},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	metadata := result.Object["metadata"].(map[string]interface{})
+	if _, ok := metadata["labels"]; ok {
+		t.Error("expected auto-added labels to be removed")
+	}
+	if _, ok := result.Object["spec"]; ok {
+		t.Error("expected spec with only finalizers to be removed")
+	}
+}
+
+func TestNormalizeImagePullPolicyLatest(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "Pod",
+			"metadata":   map[string]interface{}{"name": "pod"},
+			"spec": map[string]interface{}{
+				"containers": []interface{}{
+					map[string]interface{}{
+						"name":            "app",
+						"image":           "nginx:latest",
+						"imagePullPolicy": "Always",
+					},
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	podSpec := result.Object["spec"].(map[string]interface{})
+	container := podSpec["containers"].([]interface{})[0].(map[string]interface{})
+	if _, ok := container["imagePullPolicy"]; ok {
+		t.Error("expected default Always for :latest to be removed")
+	}
+}
+
+func TestNormalizeImagePullPolicyNonDefault(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "Pod",
+			"metadata":   map[string]interface{}{"name": "pod"},
+			"spec": map[string]interface{}{
+				"containers": []interface{}{
+					map[string]interface{}{
+						"name":            "app",
+						"image":           "nginx:1.25",
+						"imagePullPolicy": "Always",
+					},
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	podSpec := result.Object["spec"].(map[string]interface{})
+	container := podSpec["containers"].([]interface{})[0].(map[string]interface{})
+	if container["imagePullPolicy"] != "Always" {
+		t.Error("expected non-default Always (for tagged image) to be kept")
+	}
+}
+
+func TestDefaultImagePullPolicy(t *testing.T) {
+	tests := []struct {
+		image    string
+		expected string
+	}{
+		{"nginx:1.25", "IfNotPresent"},
+		{"nginx:latest", "Always"},
+		{"nginx", "Always"},
+		{"myregistry/app:v2", "IfNotPresent"},
+		{"myregistry/app", "Always"},
+		{"", "Always"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.image, func(t *testing.T) {
+			if got := defaultImagePullPolicy(tt.image); got != tt.expected {
+				t.Errorf("defaultImagePullPolicy(%q) = %q, want %q", tt.image, got, tt.expected)
+			}
+		})
+	}
+}
+
 func TestNormalizeDoesNotModifyOriginal(t *testing.T) {
 	obj := &unstructured.Unstructured{
 		Object: map[string]interface{}{
