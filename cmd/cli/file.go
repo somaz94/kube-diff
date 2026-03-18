@@ -1,8 +1,7 @@
 package cli
 
 import (
-	"fmt"
-
+	"github.com/somaz94/kube-diff/internal/source"
 	"github.com/spf13/cobra"
 )
 
@@ -11,8 +10,8 @@ var fileCmd = &cobra.Command{
 	Short: "Compare plain YAML manifests against cluster",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("file command not yet implemented")
-		return nil
+		src := source.NewFileSource(args[0])
+		return runDiff(cmd, src)
 	},
 }
 

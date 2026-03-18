@@ -1,8 +1,7 @@
 package cli
 
 import (
-	"fmt"
-
+	"github.com/somaz94/kube-diff/internal/source"
 	"github.com/spf13/cobra"
 )
 
@@ -11,8 +10,10 @@ var helmCmd = &cobra.Command{
 	Short: "Compare Helm chart template output against cluster",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("helm command not yet implemented")
-		return nil
+		values, _ := cmd.Flags().GetStringSlice("values")
+		release, _ := cmd.Flags().GetString("release")
+		src := source.NewHelmSource(args[0], release, values)
+		return runDiff(cmd, src)
 	},
 }
 

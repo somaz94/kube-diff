@@ -129,6 +129,114 @@ func (s *Summary) PrintJSON(w io.Writer) error {
 	return enc.Encode(report)
 }
 
+// PrintPlain writes a plain-text report (no ANSI colors) to the writer.
+func (s *Summary) PrintPlain(w io.Writer) {
+	for _, r := range s.Results {
+		switch r.Status {
+		case diff.StatusNew:
+			fmt.Fprintf(w, "* NEW    %s\n", r.ResourceKey())
+		case diff.StatusChanged:
+			fmt.Fprintf(w, "~ CHANGED %s\n", r.ResourceKey())
+			fmt.Fprintln(w, r.Diff)
+		case diff.StatusUnchanged:
+			fmt.Fprintf(w, "  OK     %s\n", r.ResourceKey())
+		case diff.StatusDeleted:
+			fmt.Fprintf(w, "x DELETED %s\n", r.ResourceKey())
+		}
+	}
+
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "Summary: %d resources — ", s.Total)
+	parts := []string{}
+	if s.Changed > 0 {
+		parts = append(parts, fmt.Sprintf("%d changed", s.Changed))
+	}
+	if s.New > 0 {
+		parts = append(parts, fmt.Sprintf("%d new", s.New))
+	}
+	if s.Deleted > 0 {
+		parts = append(parts, fmt.Sprintf("%d deleted", s.Deleted))
+	}
+	if s.Unchanged > 0 {
+		parts = append(parts, fmt.Sprintf("%d unchanged", s.Unchanged))
+	}
+	fmt.Fprintln(w, strings.Join(parts, ", "))
+}
+
+// PrintMarkdown writes a markdown-formatted report to the writer.
+func (s *Summary) PrintMarkdown(w io.Writer) {
+	fmt.Fprintln(w, "## kube-diff Report")
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "**%d** resources — ", s.Total)
+	parts := []string{}
+	if s.Changed > 0 {
+		parts = append(parts, fmt.Sprintf("**%d** changed", s.Changed))
+	}
+	if s.New > 0 {
+		parts = append(parts, fmt.Sprintf("**%d** new", s.New))
+	}
+	if s.Deleted > 0 {
+		parts = append(parts, fmt.Sprintf("**%d** deleted", s.Deleted))
+	}
+	if s.Unchanged > 0 {
+		parts = append(parts, fmt.Sprintf("%d unchanged", s.Unchanged))
+	}
+	fmt.Fprintln(w, strings.Join(parts, ", "))
+	fmt.Fprintln(w)
+
+	fmt.Fprintln(w, "| Status | Resource | Namespace |")
+	fmt.Fprintln(w, "|--------|----------|-----------|")
+	for _, r := range s.Results {
+		status := ""
+		switch r.Status {
+		case diff.StatusNew:
+			status = "🟢 NEW"
+		case diff.StatusChanged:
+			status = "🟡 CHANGED"
+		case diff.StatusUnchanged:
+			status = "⚪ OK"
+		case diff.StatusDeleted:
+			status = "🔴 DELETED"
+		}
+		ns := r.Namespace
+		if ns == "" {
+			ns = "-"
+		}
+		fmt.Fprintf(w, "| %s | %s/%s | %s |\n", status, r.Kind, r.Name, ns)
+	}
+
+	// Show diffs for changed resources
+	for _, r := range s.Results {
+		if r.Status == diff.StatusChanged && r.Diff != "" {
+			fmt.Fprintln(w)
+			fmt.Fprintf(w, "### %s/%s\n", r.Kind, r.Name)
+			fmt.Fprintln(w)
+			fmt.Fprintln(w, "```diff")
+			fmt.Fprintln(w, r.Diff)
+			fmt.Fprintln(w, "```")
+		}
+	}
+}
+
+// PrintSummaryOnly writes only the summary line to the writer.
+func (s *Summary) PrintSummaryOnly(w io.Writer) {
+	fmt.Fprintf(w, "Summary: %d resources — ", s.Total)
+	parts := []string{}
+	if s.Changed > 0 {
+		parts = append(parts, fmt.Sprintf("\033[33m%d changed\033[0m", s.Changed))
+	}
+	if s.New > 0 {
+		parts = append(parts, fmt.Sprintf("\033[32m%d new\033[0m", s.New))
+	}
+	if s.Deleted > 0 {
+		parts = append(parts, fmt.Sprintf("\033[31m%d deleted\033[0m", s.Deleted))
+	}
+	if s.Unchanged > 0 {
+		parts = append(parts, fmt.Sprintf("%d unchanged", s.Unchanged))
+	}
+	fmt.Fprintln(w, strings.Join(parts, ", "))
+}
+
 func colorizeDiff(text string) string {
 	var lines []string
 	for _, line := range strings.Split(text, "\n") {

@@ -45,27 +45,27 @@ func TestKustomizeCommandRequiresArg(t *testing.T) {
 	}
 }
 
-func TestFileCommandWithArg(t *testing.T) {
-	rootCmd.SetArgs([]string{"file", "/tmp/test"})
+func TestFileCommandWithInvalidPath(t *testing.T) {
+	rootCmd.SetArgs([]string{"file", "/tmp/nonexistent-kube-diff-test"})
 	err := rootCmd.Execute()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected error for nonexistent path")
 	}
 }
 
-func TestHelmCommandWithArg(t *testing.T) {
-	rootCmd.SetArgs([]string{"helm", "/tmp/chart"})
+func TestHelmCommandWithInvalidChart(t *testing.T) {
+	rootCmd.SetArgs([]string{"helm", "/tmp/nonexistent-kube-diff-chart"})
 	err := rootCmd.Execute()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected error for nonexistent chart")
 	}
 }
 
-func TestKustomizeCommandWithArg(t *testing.T) {
-	rootCmd.SetArgs([]string{"kustomize", "/tmp/overlay"})
+func TestKustomizeCommandWithInvalidPath(t *testing.T) {
+	rootCmd.SetArgs([]string{"kustomize", "/tmp/nonexistent-kube-diff-overlay"})
 	err := rootCmd.Execute()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected error for nonexistent overlay")
 	}
 }
 

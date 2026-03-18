@@ -1,8 +1,7 @@
 package cli
 
 import (
-	"fmt"
-
+	"github.com/somaz94/kube-diff/internal/source"
 	"github.com/spf13/cobra"
 )
 
@@ -11,8 +10,8 @@ var kustomizeCmd = &cobra.Command{
 	Short: "Compare Kustomize build output against cluster",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("kustomize command not yet implemented")
-		return nil
+		src := source.NewKustomizeSource(args[0])
+		return runDiff(cmd, src)
 	},
 }
 

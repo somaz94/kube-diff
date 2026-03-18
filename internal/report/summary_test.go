@@ -278,6 +278,98 @@ func TestPrintColorOnlyUnchanged(t *testing.T) {
 	}
 }
 
+func TestPrintPlain(t *testing.T) {
+	s := NewSummary(makeResults())
+	var buf bytes.Buffer
+	s.PrintPlain(&buf)
+	output := buf.String()
+
+	if !strings.Contains(output, "* NEW") {
+		t.Error("expected * NEW marker in plain output")
+	}
+	if !strings.Contains(output, "~ CHANGED") {
+		t.Error("expected ~ CHANGED marker in plain output")
+	}
+	if !strings.Contains(output, "OK") {
+		t.Error("expected OK marker in plain output")
+	}
+	if !strings.Contains(output, "x DELETED") {
+		t.Error("expected x DELETED marker in plain output")
+	}
+	// Should not contain ANSI escape codes
+	if strings.Contains(output, "\033[") {
+		t.Error("plain output should not contain ANSI codes")
+	}
+}
+
+func TestPrintMarkdown(t *testing.T) {
+	s := NewSummary(makeResults())
+	var buf bytes.Buffer
+	s.PrintMarkdown(&buf)
+	output := buf.String()
+
+	if !strings.Contains(output, "## kube-diff Report") {
+		t.Error("expected markdown header")
+	}
+	if !strings.Contains(output, "| Status | Resource | Namespace |") {
+		t.Error("expected markdown table header")
+	}
+	if !strings.Contains(output, "CHANGED") {
+		t.Error("expected CHANGED in markdown")
+	}
+	if !strings.Contains(output, "```diff") {
+		t.Error("expected diff code block in markdown")
+	}
+}
+
+func TestPrintMarkdownNoDiffs(t *testing.T) {
+	results := []*diff.DiffResult{
+		{Kind: "Service", Name: "svc", Namespace: "default", Status: diff.StatusUnchanged},
+	}
+	s := NewSummary(results)
+	var buf bytes.Buffer
+	s.PrintMarkdown(&buf)
+	output := buf.String()
+
+	if strings.Contains(output, "```diff") {
+		t.Error("should not have diff block when no changes")
+	}
+}
+
+func TestPrintSummaryOnly(t *testing.T) {
+	s := NewSummary(makeResults())
+	var buf bytes.Buffer
+	s.PrintSummaryOnly(&buf)
+	output := buf.String()
+
+	if !strings.Contains(output, "4 resources") {
+		t.Error("expected resource count in summary")
+	}
+	if !strings.Contains(output, "1 changed") {
+		t.Error("expected changed count")
+	}
+	if !strings.Contains(output, "1 new") {
+		t.Error("expected new count")
+	}
+	if !strings.Contains(output, "1 deleted") {
+		t.Error("expected deleted count")
+	}
+}
+
+func TestPrintPlainClusterScoped(t *testing.T) {
+	results := []*diff.DiffResult{
+		{Kind: "ClusterRole", Name: "admin", Status: diff.StatusNew},
+	}
+	s := NewSummary(results)
+	var buf bytes.Buffer
+	s.PrintPlain(&buf)
+	output := buf.String()
+
+	if !strings.Contains(output, "ClusterRole/admin") {
+		t.Error("expected ClusterRole/admin without namespace")
+	}
+}
+
 func TestPrintJSONResourceFields(t *testing.T) {
 	results := []*diff.DiffResult{
 		{Kind: "Deployment", Name: "app", Namespace: "staging", Status: diff.StatusChanged},
