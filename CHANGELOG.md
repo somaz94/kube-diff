@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [v1.0.0](https://github.com/somaz94/kube-diff/compare/v0.2.1...v1.0.0) (2026-03-18)
 
+### Documentation
+
+- update changelog ([d5d84cf](https://github.com/somaz94/kube-diff/commit/d5d84cf4b2d2596d2f72ae364fd05e1daa5e906e))
+
 <br/>
 
 ## [v0.2.1](https://github.com/somaz94/kube-diff/compare/v0.2.0...v0.2.1) (2026-03-18)
