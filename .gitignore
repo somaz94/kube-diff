@@ -1,0 +1,32 @@
+# Binary
+kube-diff
+*.out
+
+# Logs
+logs
+*.log
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# dotenv environment variables file
+.env
+.env.test
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea
+.vscode
+*.code-workspace
+
+# GoReleaser
+dist/

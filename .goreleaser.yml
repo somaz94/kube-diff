@@ -1,0 +1,70 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - main: ./cmd/main.go
+    binary: kube-diff
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/somaz94/kube-diff/cmd/cli.version={{.Version}}
+      - -X github.com/somaz94/kube-diff/cmd/cli.commit={{.Commit}}
+      - -X github.com/somaz94/kube-diff/cmd/cli.date={{.Date}}
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - '^chore:'
+
+release:
+  github:
+    owner: somaz94
+    name: kube-diff
+  draft: false
+  prerelease: auto
+
+brews:
+  - repository:
+      owner: somaz94
+      name: homebrew-tap
+    homepage: "https://github.com/somaz94/kube-diff"
+    description: "Compare local Kubernetes manifests against live cluster state"
+    license: "Apache-2.0"
+    install: |
+      bin.install "kube-diff"
+    test: |
+      system "#{bin}/kube-diff", "version"
+
+krews:
+  - name: diff2
+    repository:
+      owner: somaz94
+      name: krew-index
+    homepage: "https://github.com/somaz94/kube-diff"
+    description: "Compare local Kubernetes manifests against live cluster state"
+    short_description: "Diff local K8s manifests vs cluster"
