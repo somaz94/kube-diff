@@ -1,0 +1,147 @@
+package report
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"strings"
+
+	"github.com/somaz94/kube-diff/internal/diff"
+)
+
+// Summary holds aggregated diff results.
+type Summary struct {
+	Results   []*diff.DiffResult
+	New       int
+	Changed   int
+	Unchanged int
+	Deleted   int
+	Total     int
+}
+
+// NewSummary creates a summary from diff results.
+func NewSummary(results []*diff.DiffResult) *Summary {
+	s := &Summary{
+		Results: results,
+		Total:   len(results),
+	}
+
+	for _, r := range results {
+		switch r.Status {
+		case diff.StatusNew:
+			s.New++
+		case diff.StatusChanged:
+			s.Changed++
+		case diff.StatusUnchanged:
+			s.Unchanged++
+		case diff.StatusDeleted:
+			s.Deleted++
+		}
+	}
+
+	return s
+}
+
+// HasChanges returns true if there are any differences.
+func (s *Summary) HasChanges() bool {
+	return s.New > 0 || s.Changed > 0 || s.Deleted > 0
+}
+
+// ExitCode returns the appropriate exit code.
+func (s *Summary) ExitCode() int {
+	if s.HasChanges() {
+		return 1
+	}
+	return 0
+}
+
+// PrintColor writes a colorized report to the writer.
+func (s *Summary) PrintColor(w io.Writer) {
+	for _, r := range s.Results {
+		switch r.Status {
+		case diff.StatusNew:
+			fmt.Fprintf(w, "\033[32m★ NEW    %s\033[0m\n", r.ResourceKey())
+		case diff.StatusChanged:
+			fmt.Fprintf(w, "\033[33m~ CHANGED %s\033[0m\n", r.ResourceKey())
+			fmt.Fprintln(w, colorizeDiff(r.Diff))
+		case diff.StatusUnchanged:
+			fmt.Fprintf(w, "\033[90m✓ OK     %s\033[0m\n", r.ResourceKey())
+		case diff.StatusDeleted:
+			fmt.Fprintf(w, "\033[31m✗ DELETED %s\033[0m\n", r.ResourceKey())
+		}
+	}
+
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "Summary: %d resources — ", s.Total)
+	parts := []string{}
+	if s.Changed > 0 {
+		parts = append(parts, fmt.Sprintf("\033[33m%d changed\033[0m", s.Changed))
+	}
+	if s.New > 0 {
+		parts = append(parts, fmt.Sprintf("\033[32m%d new\033[0m", s.New))
+	}
+	if s.Deleted > 0 {
+		parts = append(parts, fmt.Sprintf("\033[31m%d deleted\033[0m", s.Deleted))
+	}
+	if s.Unchanged > 0 {
+		parts = append(parts, fmt.Sprintf("%d unchanged", s.Unchanged))
+	}
+	fmt.Fprintln(w, strings.Join(parts, ", "))
+}
+
+// PrintJSON writes a JSON report to the writer.
+func (s *Summary) PrintJSON(w io.Writer) error {
+	type jsonResult struct {
+		Kind      string `json:"kind"`
+		Name      string `json:"name"`
+		Namespace string `json:"namespace,omitempty"`
+		Status    string `json:"status"`
+	}
+
+	type jsonReport struct {
+		Total     int            `json:"total"`
+		Changed   int            `json:"changed"`
+		New       int            `json:"new"`
+		Deleted   int            `json:"deleted"`
+		Unchanged int            `json:"unchanged"`
+		Resources []jsonResult   `json:"resources"`
+	}
+
+	report := jsonReport{
+		Total:     s.Total,
+		Changed:   s.Changed,
+		New:       s.New,
+		Deleted:   s.Deleted,
+		Unchanged: s.Unchanged,
+	}
+
+	for _, r := range s.Results {
+		report.Resources = append(report.Resources, jsonResult{
+			Kind:      r.Kind,
+			Name:      r.Name,
+			Namespace: r.Namespace,
+			Status:    string(r.Status),
+		})
+	}
+
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc.Encode(report)
+}
+
+func colorizeDiff(text string) string {
+	var lines []string
+	for _, line := range strings.Split(text, "\n") {
+		switch {
+		case strings.HasPrefix(line, "+"):
+			lines = append(lines, fmt.Sprintf("\033[32m%s\033[0m", line))
+		case strings.HasPrefix(line, "-"):
+			lines = append(lines, fmt.Sprintf("\033[31m%s\033[0m", line))
+		case strings.HasPrefix(line, "@@"):
+			lines = append(lines, fmt.Sprintf("\033[36m%s\033[0m", line))
+		default:
+			lines = append(lines, line)
+		}
+	}
+	return strings.Join(lines, "\n")
+}
