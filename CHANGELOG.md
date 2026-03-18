@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.0](https://github.com/somaz94/kube-diff/compare/v0.2.1...v1.0.0) (2026-03-18)
+
+<br/>
+
+## [v0.2.1](https://github.com/somaz94/kube-diff/compare/v0.2.0...v0.2.1) (2026-03-18)
+
+### Documentation
+
+- add use-cases guide and fix template creationTimestamp normalization ([f6aca0f](https://github.com/somaz94/kube-diff/commit/f6aca0fee397a0ae973c1c1533cedebfa7bfd42a))
+- update changelog ([5142eab](https://github.com/somaz94/kube-diff/commit/5142eabe1a338f143d240fe879932a9e8e45c79f))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.2.0](https://github.com/somaz94/kube-diff/compare/v0.1.0...v0.2.0) (2026-03-18)
 
 ### Features
