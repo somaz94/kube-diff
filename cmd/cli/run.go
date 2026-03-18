@@ -106,17 +106,17 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 	// Generate report
 	summary := report.NewSummary(results)
 
-	switch output {
-	case "json":
-		return summary.PrintJSON(os.Stdout)
-	case "plain":
-		summary.PrintPlain(os.Stdout)
-	case "markdown":
-		summary.PrintMarkdown(os.Stdout)
-	default:
-		if summaryOnly {
-			summary.PrintSummaryOnly(os.Stdout)
-		} else {
+	if summaryOnly {
+		summary.PrintSummaryOnly(os.Stdout)
+	} else {
+		switch output {
+		case "json":
+			return summary.PrintJSON(os.Stdout)
+		case "plain":
+			summary.PrintPlain(os.Stdout)
+		case "markdown":
+			summary.PrintMarkdown(os.Stdout)
+		default:
 			summary.PrintColor(os.Stdout)
 		}
 	}

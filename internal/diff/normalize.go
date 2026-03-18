@@ -4,18 +4,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// fieldsToRemove are cluster-managed fields that should be ignored in diffs.
-var fieldsToRemove = []string{
-	"metadata.managedFields",
-	"metadata.resourceVersion",
-	"metadata.uid",
-	"metadata.creationTimestamp",
-	"metadata.generation",
-	"metadata.selfLink",
-	"metadata.annotations.kubectl.kubernetes.io/last-applied-configuration",
-	"status",
-}
-
 // Normalize removes cluster-managed fields from a resource for clean comparison.
 func Normalize(obj *unstructured.Unstructured) *unstructured.Unstructured {
 	if obj == nil {
@@ -181,6 +169,11 @@ func normalizeContainers(podSpec map[string]interface{}, key string) {
 		}
 		delete(container, "terminationMessagePath")
 		delete(container, "terminationMessagePolicy")
+
+		// Remove empty resources (cluster adds resources: {} by default)
+		if res, ok := container["resources"].(map[string]interface{}); ok && len(res) == 0 {
+			delete(container, "resources")
+		}
 
 		// Remove default imagePullPolicy
 		if container["imagePullPolicy"] == "IfNotPresent" || container["imagePullPolicy"] == "Always" {

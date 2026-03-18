@@ -144,8 +144,17 @@ func TestCompareDeletedResource(t *testing.T) {
 	if result.Status != StatusDeleted {
 		t.Errorf("expected StatusDeleted, got %s", result.Status)
 	}
+	if result.APIVersion != "v1" {
+		t.Errorf("expected v1, got %s", result.APIVersion)
+	}
 	if result.Kind != "Secret" {
 		t.Errorf("expected Secret, got %s", result.Kind)
+	}
+	if result.Name != "old-secret" {
+		t.Errorf("expected old-secret, got %s", result.Name)
+	}
+	if result.Namespace != "default" {
+		t.Errorf("expected default, got %s", result.Namespace)
 	}
 }
 
