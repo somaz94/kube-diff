@@ -89,6 +89,10 @@ info "Markdown output"
 kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" -o markdown || true
 echo ""
 
+info "Table output"
+kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" -o table || true
+echo ""
+
 info "Summary only"
 kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" -s || true
 echo ""
@@ -102,6 +106,26 @@ echo ""
 
 info "kube-diff file -n $NS -k ConfigMap,Service"
 kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" -k ConfigMap,Service || true
+echo ""
+
+# ─── Phase 9: Advanced features ─────────────────────────────────
+step "Phase 9: Advanced features"
+
+info "Ignore field: --ignore-field spec.replicas (ignore replicas diff)"
+kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" --ignore-field spec.replicas || true
+echo ""
+
+info "Context lines: -C 1 (minimal context)"
+kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" -C 1 || true
+echo ""
+
+info "Exit code: --exit-code (always exit 0)"
+kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" --exit-code
+echo "Exit code: $?"
+echo ""
+
+info "Diff strategy: --diff-strategy last-applied"
+kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" --diff-strategy last-applied || true
 echo ""
 
 # ─── Done ────────────────────────────────────────────────────────
