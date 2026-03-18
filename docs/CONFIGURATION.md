@@ -28,6 +28,7 @@ Reference for all kube-diff configuration options.
 | `--ignore-field` | | []string | (none) | Field paths to ignore in diff (dot notation, repeatable) |
 | `--context-lines` | `-C` | int | `3` | Number of context lines in unified diff output |
 | `--exit-code` | | bool | `false` | Always exit 0 even when changes are detected |
+| `--diff-strategy` | | string | `live` | Comparison strategy: `live` (cluster state) or `last-applied` (annotation) |
 
 ### Helm-specific Flags
 

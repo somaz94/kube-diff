@@ -29,6 +29,8 @@ A CLI tool that compares local Kubernetes manifests (plain YAML, Helm charts, Ku
 | **Filtering** | None | Namespace, kind, label selector filter |
 | **Field ignore** | Not supported | `--ignore-field` to exclude specific paths |
 | **Context lines** | Fixed | Configurable `--context-lines` |
+| **Diff strategy** | Live only | `--diff-strategy live\|last-applied` |
+| **Watch mode** | Not supported | `kube-diff watch` for auto re-run on file change |
 
 <br/>
 
@@ -84,6 +86,13 @@ kube-diff file ./manifests/ -o table -C 5
 
 # Don't fail CI on changes
 kube-diff file ./manifests/ --exit-code
+
+# Compare against last-applied-configuration instead of live state
+kube-diff file ./manifests/ --diff-strategy last-applied
+
+# Watch mode — auto re-run on file changes
+kube-diff watch file ./manifests/
+kube-diff watch helm ./my-chart/ -f values.yaml
 ```
 
 ### Example Output

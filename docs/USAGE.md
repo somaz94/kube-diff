@@ -13,6 +13,8 @@ Complete guide for using kube-diff CLI.
 - [Kustomize Command](#kustomize-command)
 - [Output Formats](#output-formats)
 - [Filtering](#filtering)
+- [Diff Strategy](#diff-strategy)
+- [Watch Mode](#watch-mode)
 - [Exit Codes](#exit-codes)
 - [CI/CD Integration](#cicd-integration)
 
@@ -45,6 +47,7 @@ These flags are available on all commands:
 | `--ignore-field` | | (none) | Field paths to ignore in diff (dot notation, repeatable) |
 | `--context-lines` | `-C` | `3` | Number of context lines in unified diff output |
 | `--exit-code` | | `false` | Always exit 0 even when changes are detected |
+| `--diff-strategy` | | `live` | Comparison strategy: `live` or `last-applied` |
 
 <br/>
 
@@ -315,6 +318,63 @@ kube-diff file ./manifests/ -C 5
 # Minimal context
 kube-diff file ./manifests/ -C 1
 ```
+
+<br/>
+
+## Diff Strategy
+
+Control what kube-diff compares your local manifests against.
+
+### Live (default)
+
+Compares against the current live state of resources in the cluster:
+
+```bash
+kube-diff file ./manifests/ --diff-strategy live
+```
+
+### Last Applied
+
+Compares against the `kubectl.kubernetes.io/last-applied-configuration` annotation. This shows only what changed since the last `kubectl apply`, ignoring any runtime modifications (e.g., HPA scaling, operator mutations):
+
+```bash
+kube-diff file ./manifests/ --diff-strategy last-applied
+```
+
+> **Note**: If a resource doesn't have the `last-applied-configuration` annotation (e.g., created with `kubectl create` instead of `kubectl apply`), kube-diff falls back to comparing against the live state.
+
+<br/>
+
+## Watch Mode
+
+Monitor files for changes and automatically re-run kube-diff:
+
+```bash
+# Watch plain YAML manifests
+kube-diff watch file ./manifests/
+
+# Watch Helm chart with values
+kube-diff watch helm ./my-chart/ -f values-prod.yaml
+
+# Watch Kustomize overlay
+kube-diff watch kustomize ./overlays/production/
+
+# Set minimum interval between re-runs
+kube-diff watch file ./manifests/ --interval 10s
+```
+
+Watch mode:
+- Monitors `.yaml`, `.yml`, and `.json` files recursively
+- Debounces rapid changes (500ms)
+- Skips hidden directories (e.g., `.git`)
+- Automatically sets `--exit-code` to prevent exiting on changes
+- Press `Ctrl+C` to stop
+
+### Watch Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--interval` | `0` | Minimum interval between re-runs (e.g., `5s`, `1m`). `0` means run on every change |
 
 <br/>
 

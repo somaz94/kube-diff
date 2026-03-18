@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 - Add `--output table` format for concise tabular output
 - `Compare()` now accepts `CompareOptions` for configurable diff behavior
 - `RemoveFields()` utility for removing user-specified field paths from resources
+- Add `--diff-strategy` flag: `live` (default) or `last-applied` to compare against last-applied-configuration annotation
+- Add `watch` command for auto re-run on file changes (`kube-diff watch file ./manifests/`)
 
 ### Refactoring
 
@@ -33,6 +35,9 @@ All notable changes to this project will be documented in this file.
 - Add tests for `compareResources()` with options
 - Add tests for new CLI flags registration
 - Add Job/DaemonSet normalization tests
+- Add `ExtractLastApplied` tests (nil, no annotation, empty, valid, invalid JSON)
+- Add `--diff-strategy last-applied` integration tests
+- Add `watch` command tests (existence, args, interval flag, createSource, isRelevantChange)
 
 <br/>
 

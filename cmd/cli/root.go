@@ -27,4 +27,5 @@ func init() {
 	rootCmd.PersistentFlags().StringSlice("ignore-field", nil, "field paths to ignore in diff (e.g., metadata.annotations.some-key)")
 	rootCmd.PersistentFlags().IntP("context-lines", "C", 3, "number of context lines in diff output")
 	rootCmd.PersistentFlags().Bool("exit-code", false, "exit 0 even when changes are detected (disable exit 1)")
+	rootCmd.PersistentFlags().String("diff-strategy", "live", "comparison strategy: live (cluster state) or last-applied (last-applied-configuration annotation)")
 }

@@ -46,8 +46,10 @@ make vet             # go vet
 - **Fetcher**: Uses client-go dynamic client to get live resources from cluster (`ResourceFetcher` interface)
 - **Normalize**: Strips cluster-managed fields (managedFields, uid, status, etc.)
 - **RemoveFields**: Removes user-specified field paths via `--ignore-field` (dot notation)
-- **Compare**: Generates unified diff per resource, accepts `CompareOptions` for context lines and ignore fields
+- **Compare**: Generates unified diff per resource, accepts `CompareOptions` for context lines, ignore fields, and diff strategy
+- **ExtractLastApplied**: Parses `kubectl.kubernetes.io/last-applied-configuration` annotation for `--diff-strategy last-applied`
 - **Report**: Outputs color/plain/json/markdown/table summary
+- **Watch**: fsnotify-based file watcher for auto re-run on changes
 
 ## CLI Flags
 
@@ -64,6 +66,7 @@ make vet             # go vet
 | `--ignore-field` | | Field paths to ignore in diff (dot notation, repeatable) |
 | `--context-lines` | `-C` | Number of context lines in diff (default: 3) |
 | `--exit-code` | | Always exit 0 even with changes |
+| `--diff-strategy` | | Comparison strategy: live or last-applied |
 
 ### Helm Flags
 | Flag | Short | Description |

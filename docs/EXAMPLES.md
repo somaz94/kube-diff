@@ -168,7 +168,27 @@ kube-diff file examples/file/ -n kube-diff-demo -C 1
 kube-diff file examples/file/ -n kube-diff-demo --exit-code
 ```
 
-### 11. Clean up
+### 11. Diff strategy
+
+```bash
+# Compare against live cluster state (default)
+kube-diff file examples/file/ -n kube-diff-demo --diff-strategy live
+
+# Compare against last-applied-configuration annotation
+kube-diff file examples/file/ -n kube-diff-demo --diff-strategy last-applied
+```
+
+### 12. Watch mode
+
+```bash
+# Watch for changes and auto re-run
+kube-diff watch file examples/file/ -n kube-diff-demo
+
+# Watch with minimum interval
+kube-diff watch file examples/file/ -n kube-diff-demo --interval 5s
+```
+
+### 13. Clean up
 
 ```bash
 make demo-clean

@@ -19,16 +19,28 @@ const (
 	StatusDeleted   DiffStatus = "deleted"
 )
 
+// DiffStrategy defines what to compare the local resource against.
+type DiffStrategy string
+
+const (
+	// StrategyLive compares against the live cluster state (default).
+	StrategyLive DiffStrategy = "live"
+	// StrategyLastApplied compares against the last-applied-configuration annotation.
+	StrategyLastApplied DiffStrategy = "last-applied"
+)
+
 // CompareOptions holds options for the comparison.
 type CompareOptions struct {
-	ContextLines int      // number of context lines in diff output (default: 3)
-	IgnoreFields []string // field paths to ignore (e.g., "metadata.annotations.some-key")
+	ContextLines int          // number of context lines in diff output (default: 3)
+	IgnoreFields []string     // field paths to ignore (e.g., "metadata.annotations.some-key")
+	Strategy     DiffStrategy // comparison strategy: "live" or "last-applied"
 }
 
 // DefaultCompareOptions returns the default comparison options.
 func DefaultCompareOptions() CompareOptions {
 	return CompareOptions{
 		ContextLines: 3,
+		Strategy:     StrategyLive,
 	}
 }
 
@@ -69,8 +81,22 @@ func Compare(local, cluster *unstructured.Unstructured, opts ...CompareOptions) 
 		return result, nil
 	}
 
+	// Determine comparison target based on strategy
+	var clusterTarget *unstructured.Unstructured
+	if opt.Strategy == StrategyLastApplied {
+		lastApplied, err := ExtractLastApplied(cluster)
+		if err != nil || lastApplied == nil {
+			// Fallback to live if last-applied not available
+			clusterTarget = cluster
+		} else {
+			clusterTarget = lastApplied
+		}
+	} else {
+		clusterTarget = cluster
+	}
+
 	normalizedLocal := Normalize(local)
-	normalizedCluster := Normalize(cluster)
+	normalizedCluster := Normalize(clusterTarget)
 
 	// Remove user-specified ignore fields
 	if len(opt.IgnoreFields) > 0 {

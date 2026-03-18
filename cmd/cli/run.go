@@ -25,6 +25,7 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 	ignoreFields, _ := cmd.Flags().GetStringSlice("ignore-field")
 	contextLines, _ := cmd.Flags().GetInt("context-lines")
 	noExitCode, _ := cmd.Flags().GetBool("exit-code")
+	diffStrategy, _ := cmd.Flags().GetString("diff-strategy")
 
 	// Load local resources
 	resources, err := src.Load()
@@ -84,9 +85,15 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 		return fmt.Errorf("failed to create cluster client: %w", err)
 	}
 
+	strategy := diff.StrategyLive
+	if diffStrategy == "last-applied" {
+		strategy = diff.StrategyLastApplied
+	}
+
 	opts := diff.CompareOptions{
 		ContextLines: contextLines,
 		IgnoreFields: ignoreFields,
+		Strategy:     strategy,
 	}
 
 	results, err := compareResources(fetcher, resources, opts)
