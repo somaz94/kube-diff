@@ -1,12 +1,14 @@
 name: Lint
 
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
   workflow_dispatch:
-    inputs:
-      run:
-        description: 'workflow run'
-        required: true
-        default: 'true'
 
 jobs:
   lint:
