@@ -8,6 +8,7 @@
 A CLI tool that compares local Kubernetes manifests (plain YAML, Helm charts, Kustomize overlays) against the actual state in your cluster, providing clear, colorized diffs with a summary report.
 
 > For detailed documentation, see the [docs/](docs/) folder:
+>
 > [Usage](docs/USAGE.md) |
 > [Configuration](docs/CONFIGURATION.md) |
 > [Examples](docs/EXAMPLES.md) |
