@@ -616,6 +616,187 @@ func TestRemoveFieldsCleansEmptyParent(t *testing.T) {
 	}
 }
 
+func TestNormalizeStatefulSetUpdateStrategy(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "StatefulSet",
+			"metadata":   map[string]interface{}{"name": "my-sts"},
+			"spec": map[string]interface{}{
+				"revisionHistoryLimit": int64(10),
+				"updateStrategy": map[string]interface{}{
+					"type": "RollingUpdate",
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	spec := result.Object["spec"].(map[string]interface{})
+
+	if _, ok := spec["updateStrategy"]; ok {
+		t.Error("expected default RollingUpdate updateStrategy to be removed from StatefulSet")
+	}
+}
+
+func TestNormalizeStatefulSetNonDefaultUpdateStrategy(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "StatefulSet",
+			"metadata":   map[string]interface{}{"name": "my-sts"},
+			"spec": map[string]interface{}{
+				"updateStrategy": map[string]interface{}{
+					"type": "OnDelete",
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	spec := result.Object["spec"].(map[string]interface{})
+
+	if _, ok := spec["updateStrategy"]; !ok {
+		t.Error("expected non-default OnDelete updateStrategy to be kept")
+	}
+}
+
+func TestNormalizeInitContainers(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "Deployment",
+			"metadata":   map[string]interface{}{"name": "app"},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{
+						"containers": []interface{}{
+							map[string]interface{}{
+								"name":  "app",
+								"image": "nginx:1.25",
+							},
+						},
+						"initContainers": []interface{}{
+							map[string]interface{}{
+								"name":                     "init",
+								"image":                    "busybox:1.36",
+								"terminationMessagePath":   "/dev/termination-log",
+								"terminationMessagePolicy": "File",
+								"imagePullPolicy":          "IfNotPresent",
+								"resources":                map[string]interface{}{},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	tmplSpec := result.Object["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})
+	initContainer := tmplSpec["initContainers"].([]interface{})[0].(map[string]interface{})
+
+	if _, ok := initContainer["terminationMessagePath"]; ok {
+		t.Error("expected terminationMessagePath to be removed from initContainer")
+	}
+	if _, ok := initContainer["terminationMessagePolicy"]; ok {
+		t.Error("expected terminationMessagePolicy to be removed from initContainer")
+	}
+	if _, ok := initContainer["imagePullPolicy"]; ok {
+		t.Error("expected default imagePullPolicy to be removed from initContainer")
+	}
+	if _, ok := initContainer["resources"]; ok {
+		t.Error("expected empty resources to be removed from initContainer")
+	}
+}
+
+func TestNormalizePodTemplateNoSpec(t *testing.T) {
+	// template without spec should not panic
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "Deployment",
+			"metadata":   map[string]interface{}{"name": "app"},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"labels": map[string]interface{}{"app": "test"},
+					},
+				},
+			},
+		},
+	}
+
+	// Should not panic
+	result := Normalize(obj)
+	if result == nil {
+		t.Error("expected non-nil result")
+	}
+}
+
+func TestNormalizePodTemplateCreationTimestamp(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "Deployment",
+			"metadata":   map[string]interface{}{"name": "app"},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"creationTimestamp": nil,
+						"labels":           map[string]interface{}{"app": "test"},
+					},
+					"spec": map[string]interface{}{
+						"containers": []interface{}{
+							map[string]interface{}{
+								"name":  "app",
+								"image": "nginx:1.25",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	tmplMeta := result.Object["spec"].(map[string]interface{})["template"].(map[string]interface{})["metadata"].(map[string]interface{})
+	if _, ok := tmplMeta["creationTimestamp"]; ok {
+		t.Error("expected template creationTimestamp to be removed")
+	}
+	if tmplMeta["labels"] == nil {
+		t.Error("expected labels to be preserved")
+	}
+}
+
+func TestNormalizeNonSecurityContext(t *testing.T) {
+	// Non-empty securityContext should be kept
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "Pod",
+			"metadata":   map[string]interface{}{"name": "pod"},
+			"spec": map[string]interface{}{
+				"containers": []interface{}{
+					map[string]interface{}{
+						"name":  "app",
+						"image": "nginx:1.25",
+					},
+				},
+				"securityContext": map[string]interface{}{
+					"runAsUser": int64(1000),
+				},
+			},
+		},
+	}
+
+	result := Normalize(obj)
+	podSpec := result.Object["spec"].(map[string]interface{})
+	if _, ok := podSpec["securityContext"]; !ok {
+		t.Error("expected non-empty securityContext to be kept")
+	}
+}
+
 func TestNormalizeDoesNotModifyOriginal(t *testing.T) {
 	obj := &unstructured.Unstructured{
 		Object: map[string]interface{}{
