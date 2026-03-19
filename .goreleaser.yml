@@ -61,6 +61,16 @@ brews:
       bin.install "kube-diff"
     test: |
       system "#{bin}/kube-diff", "version"
+    caveats: |
+      🎉 kube-diff installed!
+
+      Quick start:
+        kube-diff file <path>              # Compare YAML files vs cluster
+        kube-diff helm <chart> -r <name>   # Compare Helm chart vs cluster
+        kube-diff kustomize <path>         # Compare Kustomize vs cluster
+        kube-diff --help                   # Full usage
+
+      Docs: https://github.com/somaz94/kube-diff
 
 krews:
   - name: diff2
