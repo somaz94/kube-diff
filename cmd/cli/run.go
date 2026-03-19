@@ -13,8 +13,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// runDiff is the shared logic for file, helm, and kustomize commands.
-func runDiff(cmd *cobra.Command, src source.Source) error {
+// diffFlags holds all extracted CLI flags for a diff run.
+type diffFlags struct {
+	kubeconfig   string
+	kubeContext  string
+	namespace    string
+	kinds        []string
+	names        []string
+	selector     string
+	summaryOnly  bool
+	output       string
+	ignoreFields []string
+	contextLines int
+	noExitCode   bool
+	diffStrategy string
+}
+
+// extractFlags reads all relevant flags from the cobra command.
+func extractFlags(cmd *cobra.Command) diffFlags {
 	kubeconfig, _ := cmd.Flags().GetString("kubeconfig")
 	kubeContext, _ := cmd.Flags().GetString("context")
 	namespace, _ := cmd.Flags().GetString("namespace")
@@ -28,66 +44,120 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 	noExitCode, _ := cmd.Flags().GetBool("exit-code")
 	diffStrategy, _ := cmd.Flags().GetString("diff-strategy")
 
-	// Load local resources
+	return diffFlags{
+		kubeconfig:   kubeconfig,
+		kubeContext:  kubeContext,
+		namespace:    namespace,
+		kinds:        kinds,
+		names:        names,
+		selector:     selector,
+		summaryOnly:  summaryOnly,
+		output:       output,
+		ignoreFields: ignoreFields,
+		contextLines: contextLines,
+		noExitCode:   noExitCode,
+		diffStrategy: diffStrategy,
+	}
+}
+
+// filterResources applies a predicate function to filter resources.
+func filterResources(resources []source.Resource, predicate func(source.Resource) bool) []source.Resource {
+	var filtered []source.Resource
+	for _, r := range resources {
+		if predicate(r) {
+			filtered = append(filtered, r)
+		}
+	}
+	return filtered
+}
+
+// applyFilters applies namespace, kind, name, and selector filters to resources.
+func applyFilters(resources []source.Resource, f diffFlags) ([]source.Resource, error) {
+	if f.namespace != "" {
+		resources = filterResources(resources, func(r source.Resource) bool {
+			return r.Namespace == f.namespace || r.Namespace == ""
+		})
+	}
+
+	if len(f.kinds) > 0 {
+		kindSet := make(map[string]bool)
+		for _, k := range f.kinds {
+			kindSet[k] = true
+		}
+		resources = filterResources(resources, func(r source.Resource) bool {
+			return kindSet[r.Kind]
+		})
+	}
+
+	if len(f.names) > 0 {
+		nameSet := make(map[string]bool)
+		for _, n := range f.names {
+			nameSet[n] = true
+		}
+		resources = filterResources(resources, func(r source.Resource) bool {
+			return nameSet[r.Name]
+		})
+	}
+
+	if f.selector != "" {
+		selectorLabels, err := parseSelector(f.selector)
+		if err != nil {
+			return nil, fmt.Errorf("invalid selector: %w", err)
+		}
+		resources = filterResources(resources, func(r source.Resource) bool {
+			return matchesLabels(r, selectorLabels)
+		})
+	}
+
+	return resources, nil
+}
+
+// buildCompareOptions constructs CompareOptions from flags.
+func buildCompareOptions(f diffFlags) diff.CompareOptions {
+	strategy := diff.StrategyLive
+	if f.diffStrategy == "last-applied" {
+		strategy = diff.StrategyLastApplied
+	}
+	return diff.CompareOptions{
+		ContextLines: f.contextLines,
+		IgnoreFields: f.ignoreFields,
+		Strategy:     strategy,
+	}
+}
+
+// printReport outputs the summary in the requested format.
+func printReport(w *os.File, summary *report.Summary, f diffFlags) error {
+	if f.summaryOnly {
+		summary.PrintSummaryOnly(w)
+		return nil
+	}
+	switch f.output {
+	case "json":
+		return summary.PrintJSON(w)
+	case "plain":
+		summary.PrintPlain(w)
+	case "markdown":
+		summary.PrintMarkdown(w)
+	case "table":
+		summary.PrintTable(w)
+	default:
+		summary.PrintColor(w)
+	}
+	return nil
+}
+
+// runDiff is the shared logic for file, helm, and kustomize commands.
+func runDiff(cmd *cobra.Command, src source.Source) error {
+	f := extractFlags(cmd)
+
 	resources, err := src.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load resources: %w", err)
 	}
 
-	// Filter by namespace
-	if namespace != "" {
-		var filtered []source.Resource
-		for _, r := range resources {
-			if r.Namespace == namespace || r.Namespace == "" {
-				filtered = append(filtered, r)
-			}
-		}
-		resources = filtered
-	}
-
-	// Filter by kind
-	if len(kinds) > 0 {
-		kindSet := make(map[string]bool)
-		for _, k := range kinds {
-			kindSet[k] = true
-		}
-		var filtered []source.Resource
-		for _, r := range resources {
-			if kindSet[r.Kind] {
-				filtered = append(filtered, r)
-			}
-		}
-		resources = filtered
-	}
-
-	// Filter by name
-	if len(names) > 0 {
-		nameSet := make(map[string]bool)
-		for _, n := range names {
-			nameSet[n] = true
-		}
-		var filtered []source.Resource
-		for _, r := range resources {
-			if nameSet[r.Name] {
-				filtered = append(filtered, r)
-			}
-		}
-		resources = filtered
-	}
-
-	// Filter by label selector
-	if selector != "" {
-		selectorLabels, err := parseSelector(selector)
-		if err != nil {
-			return fmt.Errorf("invalid selector: %w", err)
-		}
-		var filtered []source.Resource
-		for _, r := range resources {
-			if matchesLabels(r, selectorLabels) {
-				filtered = append(filtered, r)
-			}
-		}
-		resources = filtered
+	resources, err = applyFilters(resources, f)
+	if err != nil {
+		return err
 	}
 
 	if len(resources) == 0 {
@@ -95,53 +165,23 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 		return nil
 	}
 
-	// Create cluster fetcher
-	fetcher, err := cluster.NewFetcher(kubeconfig, kubeContext)
+	fetcher, err := cluster.NewFetcher(f.kubeconfig, f.kubeContext)
 	if err != nil {
 		return fmt.Errorf("failed to create cluster client: %w", err)
 	}
 
-	strategy := diff.StrategyLive
-	if diffStrategy == "last-applied" {
-		strategy = diff.StrategyLastApplied
-	}
-
-	opts := diff.CompareOptions{
-		ContextLines: contextLines,
-		IgnoreFields: ignoreFields,
-		Strategy:     strategy,
-	}
-
+	opts := buildCompareOptions(f)
 	results, err := compareResources(fetcher, resources, opts)
 	if err != nil {
 		return err
 	}
 
-	// Generate report
 	summary := report.NewSummary(results)
-
-	if summaryOnly {
-		summary.PrintSummaryOnly(os.Stdout)
-	} else {
-		switch output {
-		case "json":
-			if err := summary.PrintJSON(os.Stdout); err != nil {
-				return err
-			}
-		case "plain":
-			summary.PrintPlain(os.Stdout)
-		case "markdown":
-			summary.PrintMarkdown(os.Stdout)
-		case "table":
-			summary.PrintTable(os.Stdout)
-		default:
-			summary.PrintColor(os.Stdout)
-		}
+	if err := printReport(os.Stdout, summary, f); err != nil {
+		return err
 	}
 
-	// Exit with appropriate code
-	// --exit-code flag disables exit 1 on changes (always exit 0)
-	if summary.HasChanges() && !noExitCode {
+	if summary.HasChanges() && !f.noExitCode {
 		os.Exit(1)
 	}
 	return nil

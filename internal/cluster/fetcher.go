@@ -9,7 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -21,11 +20,6 @@ type ResourceFetcher interface {
 // Fetcher retrieves resources from a Kubernetes cluster.
 type Fetcher struct {
 	client dynamic.Interface
-	mapper *restMapper
-}
-
-type restMapper struct {
-	config *rest.Config
 }
 
 // NewFetcher creates a new cluster Fetcher.
@@ -52,7 +46,6 @@ func NewFetcher(kubeconfig, kubecontext string) (*Fetcher, error) {
 
 	return &Fetcher{
 		client: client,
-		mapper: &restMapper{config: config},
 	}, nil
 }
 

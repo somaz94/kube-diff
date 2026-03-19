@@ -51,7 +51,7 @@ func TestGuessResourceName(t *testing.T) {
 }
 
 func TestResolveGVR(t *testing.T) {
-	f := &Fetcher{mapper: &restMapper{}}
+	f := &Fetcher{}
 
 	tests := []struct {
 		name       string
@@ -115,7 +115,7 @@ func TestResolveGVR(t *testing.T) {
 }
 
 func TestResolveGVRInvalidApiVersion(t *testing.T) {
-	f := &Fetcher{mapper: &restMapper{}}
+	f := &Fetcher{}
 	_, err := f.resolveGVR("invalid/version/extra", "Pod")
 	if err == nil {
 		t.Fatal("expected error for invalid apiVersion")
@@ -241,8 +241,7 @@ func TestGetNamespacedResource(t *testing.T) {
 
 	f := &Fetcher{
 		client: fakeClient,
-		mapper: &restMapper{},
-	}
+		}
 
 	result, err := f.Get(context.Background(), "v1", "ConfigMap", "default", "test-cm")
 	if err != nil {
@@ -277,8 +276,7 @@ func TestGetClusterScopedResource(t *testing.T) {
 
 	f := &Fetcher{
 		client: fakeClient,
-		mapper: &restMapper{},
-	}
+		}
 
 	result, err := f.Get(context.Background(), "v1", "Namespace", "", "test-ns")
 	if err != nil {
@@ -300,8 +298,7 @@ func TestGetResourceNotFound(t *testing.T) {
 
 	f := &Fetcher{
 		client: fakeClient,
-		mapper: &restMapper{},
-	}
+		}
 
 	_, err := f.Get(context.Background(), "v1", "ConfigMap", "default", "nonexistent")
 	if err == nil {
@@ -315,8 +312,7 @@ func TestGetWithInvalidApiVersion(t *testing.T) {
 
 	f := &Fetcher{
 		client: fakeClient,
-		mapper: &restMapper{},
-	}
+		}
 
 	_, err := f.Get(context.Background(), "invalid/v/extra", "Pod", "default", "test")
 	if err == nil {
@@ -356,8 +352,7 @@ func TestGetMultipleResources(t *testing.T) {
 
 	f := &Fetcher{
 		client: fakeClient,
-		mapper: &restMapper{},
-	}
+		}
 
 	r1, err := f.Get(context.Background(), "v1", "ConfigMap", "default", "cm-1")
 	if err != nil {
