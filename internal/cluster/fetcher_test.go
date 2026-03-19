@@ -241,7 +241,7 @@ func TestGetNamespacedResource(t *testing.T) {
 
 	f := &Fetcher{
 		client: fakeClient,
-		}
+	}
 
 	result, err := f.Get(context.Background(), "v1", "ConfigMap", "default", "test-cm")
 	if err != nil {
@@ -276,7 +276,7 @@ func TestGetClusterScopedResource(t *testing.T) {
 
 	f := &Fetcher{
 		client: fakeClient,
-		}
+	}
 
 	result, err := f.Get(context.Background(), "v1", "Namespace", "", "test-ns")
 	if err != nil {
@@ -298,7 +298,7 @@ func TestGetResourceNotFound(t *testing.T) {
 
 	f := &Fetcher{
 		client: fakeClient,
-		}
+	}
 
 	_, err := f.Get(context.Background(), "v1", "ConfigMap", "default", "nonexistent")
 	if err == nil {
@@ -312,7 +312,7 @@ func TestGetWithInvalidApiVersion(t *testing.T) {
 
 	f := &Fetcher{
 		client: fakeClient,
-		}
+	}
 
 	_, err := f.Get(context.Background(), "invalid/v/extra", "Pod", "default", "test")
 	if err == nil {
@@ -352,7 +352,7 @@ func TestGetMultipleResources(t *testing.T) {
 
 	f := &Fetcher{
 		client: fakeClient,
-		}
+	}
 
 	r1, err := f.Get(context.Background(), "v1", "ConfigMap", "default", "cm-1")
 	if err != nil {

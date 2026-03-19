@@ -36,7 +36,7 @@ func TestNormalizeRemovesMetadataFields(t *testing.T) {
 				"name":              "test",
 				"uid":               "abc-123",
 				"resourceVersion":   "999",
-				"creationTimestamp":  "2024-01-01T00:00:00Z",
+				"creationTimestamp": "2024-01-01T00:00:00Z",
 				"generation":        int64(5),
 				"selfLink":          "/api/v1/configmaps/test",
 				"managedFields":     []interface{}{},
@@ -152,11 +152,11 @@ func TestNormalizeDeploymentDefaults(t *testing.T) {
 								},
 							},
 						},
-						"dnsPolicy":                    "ClusterFirst",
+						"dnsPolicy":                     "ClusterFirst",
 						"restartPolicy":                 "Always",
-						"schedulerName":                  "default-scheduler",
-						"securityContext":                map[string]interface{}{},
-						"terminationGracePeriodSeconds":  int64(30),
+						"schedulerName":                 "default-scheduler",
+						"securityContext":               map[string]interface{}{},
+						"terminationGracePeriodSeconds": int64(30),
 					},
 				},
 			},
@@ -391,15 +391,15 @@ func TestNormalizeJobDefaults(t *testing.T) {
 			"kind":       "Job",
 			"metadata":   map[string]interface{}{"name": "my-job"},
 			"spec": map[string]interface{}{
-				"backoffLimit":  int64(6),
+				"backoffLimit":   int64(6),
 				"completionMode": "NonIndexed",
-				"suspend":       false,
+				"suspend":        false,
 				"template": map[string]interface{}{
 					"spec": map[string]interface{}{
 						"containers": []interface{}{
 							map[string]interface{}{
-								"name":  "worker",
-								"image": "busybox",
+								"name":                     "worker",
+								"image":                    "busybox",
 								"terminationMessagePath":   "/dev/termination-log",
 								"terminationMessagePolicy": "File",
 							},
@@ -440,8 +440,8 @@ func TestNormalizeDaemonSetDefaults(t *testing.T) {
 					"spec": map[string]interface{}{
 						"containers": []interface{}{
 							map[string]interface{}{
-								"name":  "agent",
-								"image": "fluentd:v1.16",
+								"name":                     "agent",
+								"image":                    "fluentd:v1.16",
 								"terminationMessagePath":   "/dev/termination-log",
 								"terminationMessagePolicy": "File",
 							},
@@ -744,7 +744,7 @@ func TestNormalizePodTemplateCreationTimestamp(t *testing.T) {
 				"template": map[string]interface{}{
 					"metadata": map[string]interface{}{
 						"creationTimestamp": nil,
-						"labels":           map[string]interface{}{"app": "test"},
+						"labels":            map[string]interface{}{"app": "test"},
 					},
 					"spec": map[string]interface{}{
 						"containers": []interface{}{

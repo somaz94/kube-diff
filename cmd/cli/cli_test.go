@@ -416,7 +416,6 @@ spec:
 	}
 }
 
-
 func TestWatchCommandExists(t *testing.T) {
 	f := rootCmd.Commands()
 	found := false
