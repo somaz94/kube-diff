@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.4.0](https://github.com/somaz94/kube-diff/compare/v0.3.1...v0.4.0) (2026-03-19)
+
+### Bug Fixes
+
+- use GITHUB_TOKEN for dependabot auto merge ([2567c80](https://github.com/somaz94/kube-diff/commit/2567c806d95e4e0af148e6cedfed9f58dbb77c1b))
+
+### Code Refactoring
+
+- extract shared test helper, toStringSet, executeDiff, io.Writer for printReport ([37affd1](https://github.com/somaz94/kube-diff/commit/37affd1bc86ef285632d68adaa955c771f779c8a))
+- extract filter helpers, split runDiff, deduplicate summary, remove unused restMapper ([3aa14d1](https://github.com/somaz94/kube-diff/commit/3aa14d19d5b74b6cc8292c86a7fe4f48c967c5fc))
+
+### Documentation
+
+- README.md ([dc4225c](https://github.com/somaz94/kube-diff/commit/dc4225cfe94ef35a3e244824aa7c6672b47d5959))
+- add no-push rule to CLAUDE.md ([d85fb5c](https://github.com/somaz94/kube-diff/commit/d85fb5cdc039368f3e8a4626674b084e4f6c0084))
+- add missing --name/-N flag to all documentation ([a7090c7](https://github.com/somaz94/kube-diff/commit/a7090c7e621cc6212fb4c75fabb27bcbb2f6171f))
+- CLUADE.md ([ddc7396](https://github.com/somaz94/kube-diff/commit/ddc73965a7b24a4eb0df11fd444da6e535bc76be))
+- README.md ([e35ab97](https://github.com/somaz94/kube-diff/commit/e35ab97c0ddaa6503f9e69d33b9dcc3247269234))
+- update changelog ([02bdfe1](https://github.com/somaz94/kube-diff/commit/02bdfe15fe4f4f3d128b987f54cc57dd308ff398))
+
+### Tests
+
+- improve coverage for normalize, executeDiff, watch helpers ([903b01b](https://github.com/somaz94/kube-diff/commit/903b01b571f97ef42503fd7e788ad50f8ae2ce9d))
+
+### Continuous Integration
+
+- remove lint workflow ([2f39e07](https://github.com/somaz94/kube-diff/commit/2f39e07545b7cccb3849c0f6fbb1a68f8a579a69))
+- upgrade golangci-lint to v2.11.3 for Go 1.26 compatibility ([fbd1bdd](https://github.com/somaz94/kube-diff/commit/fbd1bdd85c09d8d6d8d3a9df18fb059b2b0c9add))
+- enable lint workflow on push and pull_request triggers ([3015a0d](https://github.com/somaz94/kube-diff/commit/3015a0df837a961603ac1384320ae9a6fd0338ee))
+
+### Styles
+
+- apply go fmt formatting fixes ([75d09e2](https://github.com/somaz94/kube-diff/commit/75d09e23307679ab30805744530a0c583f80bcc6))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.3.1](https://github.com/somaz94/kube-diff/compare/v0.3.0...v0.3.1) (2026-03-18)
 
 ### Features
