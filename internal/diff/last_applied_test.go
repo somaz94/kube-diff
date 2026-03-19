@@ -3,6 +3,7 @@ package diff
 import (
 	"testing"
 
+	"github.com/somaz94/kube-diff/internal/testutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -118,10 +119,10 @@ func TestExtractLastAppliedInvalidJSON(t *testing.T) {
 func TestCompareWithLastAppliedStrategy(t *testing.T) {
 	lastAppliedJSON := `{"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":"test","namespace":"default"},"data":{"key":"value"}}`
 
-	local := newObj("v1", "ConfigMap", "test", "default", map[string]interface{}{
+	local := testutil.NewTestObj("v1", "ConfigMap", "test", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "value"},
 	})
-	cluster := newObj("v1", "ConfigMap", "test", "default", map[string]interface{}{
+	cluster := testutil.NewTestObj("v1", "ConfigMap", "test", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "cluster-changed-value"},
 	})
 	cluster.Object["metadata"].(map[string]interface{})["annotations"] = map[string]interface{}{
@@ -150,10 +151,10 @@ func TestCompareWithLastAppliedStrategy(t *testing.T) {
 }
 
 func TestCompareWithLastAppliedFallbackToLive(t *testing.T) {
-	local := newObj("v1", "ConfigMap", "test", "default", map[string]interface{}{
+	local := testutil.NewTestObj("v1", "ConfigMap", "test", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "new-value"},
 	})
-	cluster := newObj("v1", "ConfigMap", "test", "default", map[string]interface{}{
+	cluster := testutil.NewTestObj("v1", "ConfigMap", "test", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "old-value"},
 	})
 	// No last-applied annotation → should fallback to live

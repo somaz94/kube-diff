@@ -4,30 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"github.com/somaz94/kube-diff/internal/testutil"
 )
 
-func newObj(apiVersion, kind, name, namespace string, extra map[string]interface{}) *unstructured.Unstructured {
-	obj := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": apiVersion,
-			"kind":       kind,
-			"metadata": map[string]interface{}{
-				"name": name,
-			},
-		},
-	}
-	if namespace != "" {
-		obj.Object["metadata"].(map[string]interface{})["namespace"] = namespace
-	}
-	for k, v := range extra {
-		obj.Object[k] = v
-	}
-	return obj
-}
-
 func TestCompareNewResource(t *testing.T) {
-	local := newObj("v1", "ConfigMap", "my-cm", "default", nil)
+	local := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", nil)
 
 	result, err := Compare(local, nil)
 	if err != nil {
@@ -46,10 +27,10 @@ func TestCompareNewResource(t *testing.T) {
 }
 
 func TestCompareUnchanged(t *testing.T) {
-	local := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	local := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "value"},
 	})
-	cluster := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	cluster := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "value"},
 	})
 
@@ -67,10 +48,10 @@ func TestCompareUnchanged(t *testing.T) {
 }
 
 func TestCompareChanged(t *testing.T) {
-	local := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	local := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "new-value"},
 	})
-	cluster := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	cluster := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "old-value"},
 	})
 
@@ -91,10 +72,10 @@ func TestCompareChanged(t *testing.T) {
 }
 
 func TestCompareIgnoresClusterFields(t *testing.T) {
-	local := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	local := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "value"},
 	})
-	cluster := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	cluster := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "value"},
 	})
 	// Add cluster-managed fields
@@ -130,7 +111,7 @@ func TestResourceKeyWithoutNamespace(t *testing.T) {
 }
 
 func TestCompareDeletedResource(t *testing.T) {
-	cluster := newObj("v1", "Secret", "old-secret", "default", nil)
+	cluster := testutil.NewTestObj("v1", "Secret", "old-secret", "default", nil)
 
 	// For deleted resources, local is the cluster resource with StatusDeleted
 	result := &DiffResult{
@@ -160,7 +141,7 @@ func TestCompareDeletedResource(t *testing.T) {
 
 func TestCompareLocalNilIsHandled(t *testing.T) {
 	// Compare with both local provided and cluster nil → new
-	local := newObj("v1", "ConfigMap", "test", "", nil)
+	local := testutil.NewTestObj("v1", "ConfigMap", "test", "", nil)
 	result, err := Compare(local, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -174,8 +155,8 @@ func TestCompareLocalNilIsHandled(t *testing.T) {
 }
 
 func TestComparePreservesAPIVersion(t *testing.T) {
-	local := newObj("networking.k8s.io/v1", "NetworkPolicy", "deny-all", "prod", nil)
-	cluster := newObj("networking.k8s.io/v1", "NetworkPolicy", "deny-all", "prod", nil)
+	local := testutil.NewTestObj("networking.k8s.io/v1", "NetworkPolicy", "deny-all", "prod", nil)
+	cluster := testutil.NewTestObj("networking.k8s.io/v1", "NetworkPolicy", "deny-all", "prod", nil)
 
 	result, err := Compare(local, cluster)
 	if err != nil {
@@ -190,10 +171,10 @@ func TestComparePreservesAPIVersion(t *testing.T) {
 }
 
 func TestCompareWithContextLines(t *testing.T) {
-	local := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	local := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "new-value", "a": "1", "b": "2", "c": "3"},
 	})
-	cluster := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	cluster := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "old-value", "a": "1", "b": "2", "c": "3"},
 	})
 
@@ -211,10 +192,10 @@ func TestCompareWithContextLines(t *testing.T) {
 }
 
 func TestCompareWithIgnoreFields(t *testing.T) {
-	local := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	local := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "value"},
 	})
-	cluster := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	cluster := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "different-value"},
 	})
 
@@ -239,10 +220,10 @@ func TestCompareWithIgnoreFields(t *testing.T) {
 }
 
 func TestCompareWithIgnoreNestedField(t *testing.T) {
-	local := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	local := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key1": "same", "key2": "local-val"},
 	})
-	cluster := newObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	cluster := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key1": "same", "key2": "cluster-val"},
 	})
 
@@ -257,7 +238,7 @@ func TestCompareWithIgnoreNestedField(t *testing.T) {
 }
 
 func TestToYAML(t *testing.T) {
-	obj := newObj("v1", "ConfigMap", "test", "", nil)
+	obj := testutil.NewTestObj("v1", "ConfigMap", "test", "", nil)
 	yamlStr, err := toYAML(obj)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

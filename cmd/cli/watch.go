@@ -110,7 +110,9 @@ func runDiffForWatch(cmd *cobra.Command, sourceType, path string) {
 	}
 
 	// Force --exit-code in watch mode to prevent os.Exit(1) on changes
-	_ = cmd.Flags().Set("exit-code", "true")
+	if err := cmd.Flags().Set("exit-code", "true"); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to set exit-code flag: %v\n", err)
+	}
 
 	if err := runDiff(cmd, src); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

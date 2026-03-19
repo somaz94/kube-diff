@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -9,7 +10,9 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/somaz94/kube-diff/internal/diff"
+	"github.com/somaz94/kube-diff/internal/report"
 	"github.com/somaz94/kube-diff/internal/source"
+	"github.com/somaz94/kube-diff/internal/testutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -228,10 +231,10 @@ func TestRootCommandNewFlags(t *testing.T) {
 }
 
 func TestCompareResourcesWithOptions(t *testing.T) {
-	localObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	localObj := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "new-value"},
 	})
-	clusterObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	clusterObj := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "old-value"},
 	})
 
@@ -413,24 +416,6 @@ spec:
 	}
 }
 
-func newTestObj(apiVersion, kind, name, namespace string, extra map[string]interface{}) *unstructured.Unstructured {
-	obj := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": apiVersion,
-			"kind":       kind,
-			"metadata": map[string]interface{}{
-				"name": name,
-			},
-		},
-	}
-	if namespace != "" {
-		obj.Object["metadata"].(map[string]interface{})["namespace"] = namespace
-	}
-	for k, v := range extra {
-		obj.Object[k] = v
-	}
-	return obj
-}
 
 func TestWatchCommandExists(t *testing.T) {
 	f := rootCmd.Commands()
@@ -504,10 +489,10 @@ func TestIsRelevantChange(t *testing.T) {
 func TestCompareResourcesWithStrategy(t *testing.T) {
 	lastAppliedJSON := `{"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":"my-cm","namespace":"default"},"data":{"key":"value"}}`
 
-	localObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	localObj := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "value"},
 	})
-	clusterObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	clusterObj := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "cluster-modified"},
 	})
 	clusterObj.Object["metadata"].(map[string]interface{})["annotations"] = map[string]interface{}{
@@ -546,10 +531,10 @@ func TestCompareResourcesWithStrategy(t *testing.T) {
 }
 
 func TestCompareResourcesUnchanged(t *testing.T) {
-	localObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	localObj := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "value"},
 	})
-	clusterObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	clusterObj := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "value"},
 	})
 
@@ -576,10 +561,10 @@ func TestCompareResourcesUnchanged(t *testing.T) {
 }
 
 func TestCompareResourcesChanged(t *testing.T) {
-	localObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	localObj := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "new-value"},
 	})
-	clusterObj := newTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
+	clusterObj := testutil.NewTestObj("v1", "ConfigMap", "my-cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"key": "old-value"},
 	})
 
@@ -606,7 +591,7 @@ func TestCompareResourcesChanged(t *testing.T) {
 }
 
 func TestCompareResourcesNew(t *testing.T) {
-	localObj := newTestObj("v1", "ConfigMap", "new-cm", "default", nil)
+	localObj := testutil.NewTestObj("v1", "ConfigMap", "new-cm", "default", nil)
 
 	fetcher := &mockFetcher{
 		resources: map[string]*unstructured.Unstructured{},
@@ -625,11 +610,326 @@ func TestCompareResourcesNew(t *testing.T) {
 	}
 }
 
+func TestBuildCompareOptions(t *testing.T) {
+	tests := []struct {
+		name     string
+		flags    diffFlags
+		expected diff.CompareOptions
+	}{
+		{
+			name:  "default live strategy",
+			flags: diffFlags{contextLines: 3, diffStrategy: "live"},
+			expected: diff.CompareOptions{
+				ContextLines: 3,
+				Strategy:     diff.StrategyLive,
+			},
+		},
+		{
+			name:  "last-applied strategy",
+			flags: diffFlags{contextLines: 5, diffStrategy: "last-applied", ignoreFields: []string{"status"}},
+			expected: diff.CompareOptions{
+				ContextLines: 5,
+				Strategy:     diff.StrategyLastApplied,
+				IgnoreFields: []string{"status"},
+			},
+		},
+		{
+			name:  "unknown strategy defaults to live",
+			flags: diffFlags{contextLines: 3, diffStrategy: "unknown"},
+			expected: diff.CompareOptions{
+				ContextLines: 3,
+				Strategy:     diff.StrategyLive,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := buildCompareOptions(tt.flags)
+			if opts.ContextLines != tt.expected.ContextLines {
+				t.Errorf("ContextLines: got %d, want %d", opts.ContextLines, tt.expected.ContextLines)
+			}
+			if opts.Strategy != tt.expected.Strategy {
+				t.Errorf("Strategy: got %v, want %v", opts.Strategy, tt.expected.Strategy)
+			}
+			if len(opts.IgnoreFields) != len(tt.expected.IgnoreFields) {
+				t.Errorf("IgnoreFields length: got %d, want %d", len(opts.IgnoreFields), len(tt.expected.IgnoreFields))
+			}
+		})
+	}
+}
+
+func TestPrintReport(t *testing.T) {
+	results := []*diff.DiffResult{
+		{Kind: "ConfigMap", Name: "cm", Namespace: "default", Status: diff.StatusNew},
+		{Kind: "Deployment", Name: "app", Namespace: "default", Status: diff.StatusChanged, Diff: "--- a\n+++ b\n-old\n+new"},
+	}
+	summary := report.NewSummary(results)
+
+	tests := []struct {
+		name     string
+		flags    diffFlags
+		contains string
+	}{
+		{"json output", diffFlags{output: "json"}, `"total":`},
+		{"plain output", diffFlags{output: "plain"}, "* NEW"},
+		{"markdown output", diffFlags{output: "markdown"}, "## kube-diff Report"},
+		{"table output", diffFlags{output: "table"}, "STATUS"},
+		{"color output (default)", diffFlags{output: "color"}, "NEW"},
+		{"summary-only", diffFlags{summaryOnly: true}, "2 resources"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := printReport(&buf, summary, tt.flags); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if output := buf.String(); !containsString(output, tt.contains) {
+				t.Errorf("output missing %q:\n%s", tt.contains, output)
+			}
+		})
+	}
+}
+
+func containsString(s, substr string) bool {
+	return len(s) > 0 && bytes.Contains([]byte(s), []byte(substr))
+}
+
+func TestToStringSet(t *testing.T) {
+	set := toStringSet([]string{"a", "b", "c"})
+	if !set["a"] || !set["b"] || !set["c"] {
+		t.Error("expected all items in set")
+	}
+	if set["d"] {
+		t.Error("unexpected item in set")
+	}
+
+	empty := toStringSet([]string{})
+	if len(empty) != 0 {
+		t.Error("expected empty set")
+	}
+}
+
+func TestCreateSourceAllTypes(t *testing.T) {
+	tests := []struct {
+		name       string
+		sourceType string
+		wantNil    bool
+	}{
+		{"file", "file", false},
+		{"helm", "helm", false},
+		{"kustomize", "kustomize", false},
+		{"invalid", "invalid", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			src := createSource(rootCmd, tt.sourceType, "/tmp")
+			if tt.wantNil && src != nil {
+				t.Error("expected nil source")
+			}
+			if !tt.wantNil && src == nil {
+				t.Error("expected non-nil source")
+			}
+		})
+	}
+}
+
+func TestAddWatchPaths(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create subdirectories
+	subDir := filepath.Join(dir, "manifests")
+	hiddenDir := filepath.Join(dir, ".hidden")
+	os.MkdirAll(subDir, 0755)
+	os.MkdirAll(hiddenDir, 0755)
+
+	// Write test files
+	os.WriteFile(filepath.Join(dir, "deploy.yaml"), []byte("test"), 0644)
+	os.WriteFile(filepath.Join(subDir, "svc.yaml"), []byte("test"), 0644)
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		t.Fatalf("failed to create watcher: %v", err)
+	}
+	defer watcher.Close()
+
+	if err := addWatchPaths(watcher, dir); err != nil {
+		t.Fatalf("addWatchPaths failed: %v", err)
+	}
+
+	// Watcher should have added dir and subDir but not hiddenDir
+	watchList := watcher.WatchList()
+	found := map[string]bool{}
+	for _, p := range watchList {
+		found[p] = true
+	}
+
+	if !found[dir] {
+		t.Error("expected root dir to be watched")
+	}
+	if !found[subDir] {
+		t.Error("expected subDir to be watched")
+	}
+	if found[hiddenDir] {
+		t.Error("hidden dir should not be watched")
+	}
+}
+
+func TestAddWatchPathsInvalidPath(t *testing.T) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		t.Fatalf("failed to create watcher: %v", err)
+	}
+	defer watcher.Close()
+
+	err = addWatchPaths(watcher, "/nonexistent-path-kube-diff-test")
+	if err == nil {
+		t.Error("expected error for nonexistent path")
+	}
+}
+
+func TestRunWatchInvalidSourceType(t *testing.T) {
+	err := runWatch(rootCmd, "invalid", "/tmp", 0)
+	if err == nil {
+		t.Fatal("expected error for invalid source type")
+	}
+	if !containsString(err.Error(), "invalid source type") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestPrintReportWritesToWriter(t *testing.T) {
+	results := []*diff.DiffResult{
+		{Kind: "Service", Name: "svc", Namespace: "default", Status: diff.StatusUnchanged},
+	}
+	summary := report.NewSummary(results)
+
+	var buf bytes.Buffer
+	err := printReport(&buf, summary, diffFlags{output: "json"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if buf.Len() == 0 {
+		t.Error("expected non-empty output")
+	}
+}
+
+func TestExecuteDiff(t *testing.T) {
+	localObj := testutil.NewTestObj("v1", "ConfigMap", "cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "value"},
+	})
+	clusterObj := testutil.NewTestObj("v1", "ConfigMap", "cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "value"},
+	})
+
+	fetcher := &mockFetcher{
+		resources: map[string]*unstructured.Unstructured{
+			"v1/ConfigMap/default/cm": clusterObj,
+		},
+	}
+
+	resources := []source.Resource{
+		{APIVersion: "v1", Kind: "ConfigMap", Name: "cm", Namespace: "default", Object: localObj},
+	}
+
+	tests := []struct {
+		name   string
+		flags  diffFlags
+		errNil bool
+	}{
+		{"json output", diffFlags{output: "json", contextLines: 3, noExitCode: true}, true},
+		{"plain output", diffFlags{output: "plain", contextLines: 3, noExitCode: true}, true},
+		{"markdown output", diffFlags{output: "markdown", contextLines: 3, noExitCode: true}, true},
+		{"table output", diffFlags{output: "table", contextLines: 3, noExitCode: true}, true},
+		{"color output", diffFlags{output: "color", contextLines: 3, noExitCode: true}, true},
+		{"summary-only", diffFlags{summaryOnly: true, contextLines: 3, noExitCode: true}, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := executeDiff(fetcher, resources, tt.flags, &buf)
+			if tt.errNil && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if buf.Len() == 0 {
+				t.Error("expected non-empty output")
+			}
+		})
+	}
+}
+
+func TestExecuteDiffWithChanges(t *testing.T) {
+	localObj := testutil.NewTestObj("v1", "ConfigMap", "cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "new-value"},
+	})
+	clusterObj := testutil.NewTestObj("v1", "ConfigMap", "cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "old-value"},
+	})
+
+	fetcher := &mockFetcher{
+		resources: map[string]*unstructured.Unstructured{
+			"v1/ConfigMap/default/cm": clusterObj,
+		},
+	}
+
+	resources := []source.Resource{
+		{APIVersion: "v1", Kind: "ConfigMap", Name: "cm", Namespace: "default", Object: localObj},
+	}
+
+	// With noExitCode=true, should not call os.Exit
+	var buf bytes.Buffer
+	err := executeDiff(fetcher, resources, diffFlags{output: "json", contextLines: 3, noExitCode: true}, &buf)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if buf.Len() == 0 {
+		t.Error("expected non-empty output")
+	}
+}
+
+func TestExecuteDiffLastApplied(t *testing.T) {
+	lastAppliedJSON := `{"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":"cm","namespace":"default"},"data":{"key":"value"}}`
+
+	localObj := testutil.NewTestObj("v1", "ConfigMap", "cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "value"},
+	})
+	clusterObj := testutil.NewTestObj("v1", "ConfigMap", "cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "modified"},
+	})
+	clusterObj.Object["metadata"].(map[string]interface{})["annotations"] = map[string]interface{}{
+		"kubectl.kubernetes.io/last-applied-configuration": lastAppliedJSON,
+	}
+
+	fetcher := &mockFetcher{
+		resources: map[string]*unstructured.Unstructured{
+			"v1/ConfigMap/default/cm": clusterObj,
+		},
+	}
+
+	resources := []source.Resource{
+		{APIVersion: "v1", Kind: "ConfigMap", Name: "cm", Namespace: "default", Object: localObj},
+	}
+
+	var buf bytes.Buffer
+	err := executeDiff(fetcher, resources, diffFlags{
+		output:       "plain",
+		contextLines: 3,
+		diffStrategy: "last-applied",
+		noExitCode:   true,
+	}, &buf)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestCompareResourcesMultiple(t *testing.T) {
-	cm := newTestObj("v1", "ConfigMap", "cm", "default", map[string]interface{}{
+	cm := testutil.NewTestObj("v1", "ConfigMap", "cm", "default", map[string]interface{}{
 		"data": map[string]interface{}{"k": "v"},
 	})
-	deploy := newTestObj("apps/v1", "Deployment", "app", "default", nil)
+	deploy := testutil.NewTestObj("apps/v1", "Deployment", "app", "default", nil)
 
 	fetcher := &mockFetcher{
 		resources: map[string]*unstructured.Unstructured{

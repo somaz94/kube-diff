@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -71,6 +72,15 @@ func filterResources(resources []source.Resource, predicate func(source.Resource
 	return filtered
 }
 
+// toStringSet converts a string slice to a set for O(1) lookups.
+func toStringSet(items []string) map[string]bool {
+	set := make(map[string]bool, len(items))
+	for _, item := range items {
+		set[item] = true
+	}
+	return set
+}
+
 // applyFilters applies namespace, kind, name, and selector filters to resources.
 func applyFilters(resources []source.Resource, f diffFlags) ([]source.Resource, error) {
 	if f.namespace != "" {
@@ -80,20 +90,14 @@ func applyFilters(resources []source.Resource, f diffFlags) ([]source.Resource, 
 	}
 
 	if len(f.kinds) > 0 {
-		kindSet := make(map[string]bool)
-		for _, k := range f.kinds {
-			kindSet[k] = true
-		}
+		kindSet := toStringSet(f.kinds)
 		resources = filterResources(resources, func(r source.Resource) bool {
 			return kindSet[r.Kind]
 		})
 	}
 
 	if len(f.names) > 0 {
-		nameSet := make(map[string]bool)
-		for _, n := range f.names {
-			nameSet[n] = true
-		}
+		nameSet := toStringSet(f.names)
 		resources = filterResources(resources, func(r source.Resource) bool {
 			return nameSet[r.Name]
 		})
@@ -126,7 +130,7 @@ func buildCompareOptions(f diffFlags) diff.CompareOptions {
 }
 
 // printReport outputs the summary in the requested format.
-func printReport(w *os.File, summary *report.Summary, f diffFlags) error {
+func printReport(w io.Writer, summary *report.Summary, f diffFlags) error {
 	if f.summaryOnly {
 		summary.PrintSummaryOnly(w)
 		return nil
@@ -170,6 +174,12 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 		return fmt.Errorf("failed to create cluster client: %w", err)
 	}
 
+	return executeDiff(fetcher, resources, f, os.Stdout)
+}
+
+// executeDiff runs comparison, prints report, and handles exit code.
+// Extracted from runDiff for testability.
+func executeDiff(fetcher cluster.ResourceFetcher, resources []source.Resource, f diffFlags, w io.Writer) error {
 	opts := buildCompareOptions(f)
 	results, err := compareResources(fetcher, resources, opts)
 	if err != nil {
@@ -177,7 +187,7 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 	}
 
 	summary := report.NewSummary(results)
-	if err := printReport(os.Stdout, summary, f); err != nil {
+	if err := printReport(w, summary, f); err != nil {
 		return err
 	}
 
