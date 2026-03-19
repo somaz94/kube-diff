@@ -84,14 +84,14 @@ make vet             # go vet
 
 ## Important Rules
 
-- **코드/테스트 수정 후 반드시 관련 문서를 확인하고 업데이트할 것.** 새 플래그, 기능, 동작 변경이 있으면 아래 파일들을 검토:
-  - `README.md` — Quick Start, 비교 테이블, Exit Codes
-  - `CHANGELOG.md` — Unreleased 섹션에 변경사항 추가
-  - `docs/USAGE.md` — Global Flags 테이블, Output Formats, Filtering, CI/CD 예시
-  - `docs/CONFIGURATION.md` — CLI Flags 테이블, Normalized Fields
-  - `docs/EXAMPLES.md` — 새 기능 관련 예시 추가
-  - `CLAUDE.md` — Key Concepts, CLI Flags 테이블
-  - kube-diff-action의 `action.yml`, `scripts/run.sh`, `README.md` — 새 input 반영
+- **After modifying code or tests, always review and update the related documentation.** If there are new flags, features, or behavior changes, check the following files:
+  - `README.md` — Quick Start, comparison table, Exit Codes
+  - `CHANGELOG.md` — Add changes to the Unreleased section
+  - `docs/USAGE.md` — Global Flags table, Output Formats, Filtering, CI/CD examples
+  - `docs/CONFIGURATION.md` — CLI Flags table, Normalized Fields
+  - `docs/EXAMPLES.md` — Add examples for new features
+  - `CLAUDE.md` — Key Concepts, CLI Flags table
+  - kube-diff-action's `action.yml`, `scripts/run.sh`, `README.md` — Reflect new inputs
 
 <br/>
 
