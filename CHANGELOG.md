@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.4.1](https://github.com/somaz94/kube-diff/compare/v0.4.0...v0.4.1) (2026-03-19)
+
+### Features
+
+- add brew install caveats message ([2805957](https://github.com/somaz94/kube-diff/commit/28059579846bf9ab468e3f1326a61db2a026fa4f))
+
+### Documentation
+
+- update changelog ([1cd7a74](https://github.com/somaz94/kube-diff/commit/1cd7a740e74d78ba08040808adeb1666318981ff))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.4.0](https://github.com/somaz94/kube-diff/compare/v0.3.1...v0.4.0) (2026-03-19)
 
 ### Bug Fixes
