@@ -60,6 +60,7 @@ make vet             # go vet
 | `--context` | | Kubernetes context to use |
 | `--namespace` | `-n` | Filter by namespace |
 | `--kind` | `-k` | Filter by resource kind |
+| `--name` | `-N` | Filter by resource name |
 | `--selector` | `-l` | Filter by label selector |
 | `--summary-only` | `-s` | Show summary only |
 | `--output` | `-o` | Output format: color, plain, json, markdown, table |

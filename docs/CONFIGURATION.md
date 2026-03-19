@@ -23,6 +23,8 @@ Reference for all kube-diff configuration options.
 | `--context` | | string | Current context | Kubernetes context to use |
 | `--namespace` | `-n` | string | (all) | Filter by namespace |
 | `--kind` | `-k` | []string | (all) | Filter by resource kind (comma-separated) |
+| `--name` | `-N` | []string | (all) | Filter by resource name (comma-separated) |
+| `--selector` | `-l` | string | (all) | Filter by label selector (e.g., `app=nginx,env=prod`) |
 | `--summary-only` | `-s` | bool | `false` | Show summary only, no diff details |
 | `--output` | `-o` | string | `color` | Output format: `color`, `plain`, `json`, `markdown`, `table` |
 | `--ignore-field` | | []string | (none) | Field paths to ignore in diff (dot notation, repeatable) |

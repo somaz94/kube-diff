@@ -141,7 +141,17 @@ kube-diff file examples/file/ -n kube-diff-demo -k Deployment
 kube-diff file examples/file/ -n kube-diff-demo -k ConfigMap,Service
 ```
 
-### 8. Ignore fields
+### 8. Name filtering
+
+```bash
+# Single resource by name
+kube-diff file examples/file/ -n kube-diff-demo -N demo-app
+
+# Multiple resource names
+kube-diff file examples/file/ -n kube-diff-demo -N demo-config,demo-app
+```
+
+### 9. Ignore fields
 
 ```bash
 # Ignore a specific annotation added by CI
@@ -151,7 +161,7 @@ kube-diff file examples/file/ -n kube-diff-demo --ignore-field metadata.annotati
 kube-diff file examples/file/ -n kube-diff-demo --ignore-field spec.replicas
 ```
 
-### 9. Context lines
+### 10. Context lines
 
 ```bash
 # Show 5 lines of context around changes
@@ -161,14 +171,14 @@ kube-diff file examples/file/ -n kube-diff-demo -C 5
 kube-diff file examples/file/ -n kube-diff-demo -C 1
 ```
 
-### 10. Exit code control
+### 11. Exit code control
 
 ```bash
 # Report drift without failing (always exit 0)
 kube-diff file examples/file/ -n kube-diff-demo --exit-code
 ```
 
-### 11. Diff strategy
+### 12. Diff strategy
 
 ```bash
 # Compare against live cluster state (default)
@@ -178,7 +188,7 @@ kube-diff file examples/file/ -n kube-diff-demo --diff-strategy live
 kube-diff file examples/file/ -n kube-diff-demo --diff-strategy last-applied
 ```
 
-### 12. Watch mode
+### 13. Watch mode
 
 ```bash
 # Watch for changes and auto re-run
@@ -188,7 +198,7 @@ kube-diff watch file examples/file/ -n kube-diff-demo
 kube-diff watch file examples/file/ -n kube-diff-demo --interval 5s
 ```
 
-### 13. Clean up
+### 14. Clean up
 
 ```bash
 make demo-clean

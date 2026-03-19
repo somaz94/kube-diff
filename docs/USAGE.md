@@ -41,6 +41,7 @@ These flags are available on all commands:
 | `--context` | | Current context | Kubernetes context to use |
 | `--namespace` | `-n` | All | Filter by namespace |
 | `--kind` | `-k` | All | Filter by resource kind (comma-separated) |
+| `--name` | `-N` | All | Filter by resource name (comma-separated) |
 | `--selector` | `-l` | All | Filter by label selector (e.g., `app=nginx,env=prod`) |
 | `--summary-only` | `-s` | `false` | Show summary only, no diff details |
 | `--output` | `-o` | `color` | Output format: `color`, `plain`, `json`, `markdown`, `table` |
@@ -272,6 +273,18 @@ kube-diff file ./manifests/ -k Deployment
 
 # Multiple kinds (comma-separated)
 kube-diff file ./manifests/ -k Deployment,Service,ConfigMap
+```
+
+### By resource name
+
+Only compare specific resources by name:
+
+```bash
+# Single name
+kube-diff file ./manifests/ -N my-app
+
+# Multiple names (comma-separated)
+kube-diff file ./manifests/ -N my-app,my-config
 ```
 
 ### By label selector
