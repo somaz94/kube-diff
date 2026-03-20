@@ -72,6 +72,14 @@ brews:
 
       Docs: https://github.com/somaz94/kube-diff
 
+scoops:
+  - repository:
+      owner: somaz94
+      name: scoop-bucket
+    homepage: "https://github.com/somaz94/kube-diff"
+    description: "Compare local Kubernetes manifests against live cluster state"
+    license: "Apache-2.0"
+
 krews:
   - name: diff2
     repository:

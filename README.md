@@ -43,6 +43,10 @@ A CLI tool that compares local Kubernetes manifests (plain YAML, Helm charts, Ku
 # Homebrew
 brew install somaz94/tap/kube-diff
 
+# Scoop (Windows)
+scoop bucket add somaz94 https://github.com/somaz94/scoop-bucket
+scoop install kube-diff
+
 # Krew (kubectl plugin)
 kubectl krew install diff2
 
@@ -64,6 +68,9 @@ go install github.com/somaz94/kube-diff/cmd@latest
 # Homebrew
 brew update && brew upgrade kube-diff
 
+# Scoop
+scoop update kube-diff
+
 # Krew
 kubectl krew upgrade diff2
 
@@ -76,6 +83,9 @@ go install github.com/somaz94/kube-diff/cmd@latest
 ```bash
 # Homebrew
 brew uninstall kube-diff
+
+# Scoop
+scoop uninstall kube-diff
 
 # Krew
 kubectl krew uninstall diff2
