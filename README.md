@@ -67,6 +67,19 @@ kubectl krew upgrade diff2
 go install github.com/somaz94/kube-diff/cmd@latest
 ```
 
+### Uninstall
+
+```bash
+# Homebrew
+brew uninstall kube-diff
+
+# Krew
+kubectl krew uninstall diff2
+
+# Manual
+sudo rm /usr/local/bin/kube-diff
+```
+
 ### Basic Usage
 
 ```bash
