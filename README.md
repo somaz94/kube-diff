@@ -46,8 +46,12 @@ brew install somaz94/tap/kube-diff
 # Krew (kubectl plugin)
 kubectl krew install diff2
 
-# Binary
+# Binary (latest)
 curl -sL https://github.com/somaz94/kube-diff/releases/latest/download/kube-diff_linux_amd64.tar.gz | tar xz
+sudo mv kube-diff /usr/local/bin/
+
+# Binary (specific version)
+curl -sL https://github.com/somaz94/kube-diff/releases/download/v0.1.0/kube-diff_0.1.0_linux_amd64.tar.gz | tar xz
 sudo mv kube-diff /usr/local/bin/
 
 # From source
