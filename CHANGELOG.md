@@ -2,15 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased (2026-03-25)
+
+### Features
+
+- add branch and pr workflow targets to Makefile ([49d3363](https://github.com/somaz94/kube-diff/commit/49d3363f956c94ceb0ac4a97e9b498383b2c1308))
+- add Scoop bucket support for Windows distribution ([b5a1ccf](https://github.com/somaz94/kube-diff/commit/b5a1ccf2791a07869068b2f580ec26e5d793858f))
+
+### Documentation
+
+- add specific version install instructions to README ([8d7cbf9](https://github.com/somaz94/kube-diff/commit/8d7cbf973131f664949c27c27a9a78407361293b))
+- add Uninstall section to README ([89b6ec0](https://github.com/somaz94/kube-diff/commit/89b6ec00a48085dc20ee48f99a56923822c379cd))
+
+### Continuous Integration
+
+- add auto-generated PR body script and limit push trigger to main ([69dd46e](https://github.com/somaz94/kube-diff/commit/69dd46e27fc9fc1c6b47cb3aff6c4927d8f80bd9))
+
+### Chores
+
+- **deps:** bump azure/setup-helm from 4 to 5 ([8cdb976](https://github.com/somaz94/kube-diff/commit/8cdb976f1c4ae957d7f7eee6981e4bc167c5ab4d))
+- **deps:** bump the go-minor group with 2 updates (#2) ([#2](https://github.com/somaz94/kube-diff/pull/2)) ([4f703bc](https://github.com/somaz94/kube-diff/commit/4f703bca8058f5dd585c2fb00056a83140d889db))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.4.1](https://github.com/somaz94/kube-diff/compare/v0.4.0...v0.4.1) (2026-03-19)
 
 ### Features
 
 - add brew install caveats message ([2805957](https://github.com/somaz94/kube-diff/commit/28059579846bf9ab468e3f1326a61db2a026fa4f))
-
-### Documentation
-
-- update changelog ([1cd7a74](https://github.com/somaz94/kube-diff/commit/1cd7a740e74d78ba08040808adeb1666318981ff))
 
 ### Contributors
 
@@ -36,7 +59,6 @@ All notable changes to this project will be documented in this file.
 - add missing --name/-N flag to all documentation ([a7090c7](https://github.com/somaz94/kube-diff/commit/a7090c7e621cc6212fb4c75fabb27bcbb2f6171f))
 - CLUADE.md ([ddc7396](https://github.com/somaz94/kube-diff/commit/ddc73965a7b24a4eb0df11fd444da6e535bc76be))
 - README.md ([e35ab97](https://github.com/somaz94/kube-diff/commit/e35ab97c0ddaa6503f9e69d33b9dcc3247269234))
-- update changelog ([02bdfe1](https://github.com/somaz94/kube-diff/commit/02bdfe15fe4f4f3d128b987f54cc57dd308ff398))
 
 ### Tests
 
@@ -67,7 +89,6 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 
 - add brew upgrade instructions to README ([15e0db5](https://github.com/somaz94/kube-diff/commit/15e0db5c89261587be976015131af3d5a0a9b12a))
-- update changelog ([e7a4ce4](https://github.com/somaz94/kube-diff/commit/e7a4ce4fb0d072bd2f20aef7bfa1d479ef92cc62))
 
 ### Contributors
 
@@ -94,7 +115,6 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 
 - update documentation for new features ([8ea967f](https://github.com/somaz94/kube-diff/commit/8ea967f1e4cc621c1f62a8979d2f6e02a6e24e7e))
-- update changelog ([127fe6c](https://github.com/somaz94/kube-diff/commit/127fe6c99e1bb9d04b9695c4d0449780ac0f0efc))
 
 ### Continuous Integration
 
@@ -114,11 +134,7 @@ All notable changes to this project will be documented in this file.
 
 ### Documentation
 
-- update changelog ([1408ae2](https://github.com/somaz94/kube-diff/commit/1408ae2b40945beefb8a9f6c249b2bfb6a76ca5c))
-- update changelog ([e5430a8](https://github.com/somaz94/kube-diff/commit/e5430a85b619e59cd2777290fac39725ad21f695))
-- update changelog ([d5d84cf](https://github.com/somaz94/kube-diff/commit/d5d84cf4b2d2596d2f72ae364fd05e1daa5e906e))
 - add use-cases guide and fix template creationTimestamp normalization ([f6aca0f](https://github.com/somaz94/kube-diff/commit/f6aca0fee397a0ae973c1c1533cedebfa7bfd42a))
-- update changelog ([5142eab](https://github.com/somaz94/kube-diff/commit/5142eabe1a338f143d240fe879932a9e8e45c79f))
 
 ### Contributors
 
@@ -142,7 +158,6 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 
 - remove roadmap section and update filtering description ([9b271c3](https://github.com/somaz94/kube-diff/commit/9b271c30bc1057f81a8fac3a40c7622a50dfeb8a))
-- update changelog ([1bef627](https://github.com/somaz94/kube-diff/commit/1bef6276793d89f79bfe081f671190e419527abd))
 
 ### Continuous Integration
 
@@ -166,8 +181,6 @@ All notable changes to this project will be documented in this file.
 
 ### Documentation
 
-- update CONTRIBUTORS.md ([7c9b7cd](https://github.com/somaz94/kube-diff/commit/7c9b7cd629f2ca772f8ae7fcf88c8da9cb295600))
-- update changelog ([1134969](https://github.com/somaz94/kube-diff/commit/1134969bcfb84f2217e5f80c3cc61e9242d65a3a))
 - add README, CONTRIBUTING, CODEOWNERS, and docs/ documentation ([21e089a](https://github.com/somaz94/kube-diff/commit/21e089a1d22d1c2f63b3608227aaab2542b1232b))
 
 ### Tests
