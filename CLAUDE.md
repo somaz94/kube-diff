@@ -4,8 +4,6 @@ CLI tool to compare local Kubernetes manifests against live cluster state.
 
 <br/>
 
-## Commit Guidelines
-
 - Do not include `Co-Authored-By` lines in commit messages.
 - Use Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `ci:`, `chore:`)
 - Do not push to remote. Only commit. The user will push manually.
@@ -97,8 +95,6 @@ make vet             # go vet
   - kube-diff-action's `action.yml`, `scripts/run.sh`, `README.md` — Reflect new inputs
 
 <br/>
-
-## Language
 
 - Communicate with the user in Korean.
 - All documentation and code comments must be written in English.
