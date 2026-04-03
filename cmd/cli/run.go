@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -174,14 +175,18 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 		return fmt.Errorf("failed to create cluster client: %w", err)
 	}
 
-	return executeDiff(fetcher, resources, f, os.Stdout)
+	err = executeDiff(cmd.Context(), fetcher, resources, f, os.Stdout)
+	if errors.Is(err, ErrChangesDetected) {
+		os.Exit(1)
+	}
+	return err
 }
 
-// executeDiff runs comparison, prints report, and handles exit code.
-// Extracted from runDiff for testability.
-func executeDiff(fetcher cluster.ResourceFetcher, resources []source.Resource, f diffFlags, w io.Writer) error {
+// executeDiff runs comparison, prints report, and returns ErrChangesDetected
+// when differences are found and noExitCode is not set.
+func executeDiff(ctx context.Context, fetcher cluster.ResourceFetcher, resources []source.Resource, f diffFlags, w io.Writer) error {
 	opts := buildCompareOptions(f)
-	results, err := compareResources(fetcher, resources, opts)
+	results, err := compareResources(ctx, fetcher, resources, opts)
 	if err != nil {
 		return err
 	}
@@ -192,27 +197,19 @@ func executeDiff(fetcher cluster.ResourceFetcher, resources []source.Resource, f
 	}
 
 	if summary.HasChanges() && !f.noExitCode {
-		os.Exit(1)
+		return ErrChangesDetected
 	}
 	return nil
 }
 
 // compareResources compares local resources against the cluster using the given fetcher.
-func compareResources(fetcher cluster.ResourceFetcher, resources []source.Resource, opts ...diff.CompareOptions) ([]*diff.DiffResult, error) {
-	var opt diff.CompareOptions
-	if len(opts) > 0 {
-		opt = opts[0]
-	} else {
-		opt = diff.DefaultCompareOptions()
-	}
-
+func compareResources(ctx context.Context, fetcher cluster.ResourceFetcher, resources []source.Resource, opts diff.CompareOptions) ([]*diff.DiffResult, error) {
 	var results []*diff.DiffResult
 	for _, r := range resources {
-		ctx := context.Background()
 		clusterObj, err := fetcher.Get(ctx, r.APIVersion, r.Kind, r.Namespace, r.Name)
 		if err != nil {
 			// Resource not found in cluster → new
-			result, compareErr := diff.Compare(r.Object, nil, opt)
+			result, compareErr := diff.Compare(r.Object, nil, opts)
 			if compareErr != nil {
 				return nil, compareErr
 			}
@@ -220,7 +217,7 @@ func compareResources(fetcher cluster.ResourceFetcher, resources []source.Resour
 			continue
 		}
 
-		result, compareErr := diff.Compare(r.Object, clusterObj, opt)
+		result, compareErr := diff.Compare(r.Object, clusterObj, opts)
 		if compareErr != nil {
 			return nil, compareErr
 		}

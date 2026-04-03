@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -250,7 +251,7 @@ func TestCompareResourcesWithOptions(t *testing.T) {
 
 	// With ignore-field, data should be ignored → unchanged
 	opts := diff.CompareOptions{ContextLines: 3, IgnoreFields: []string{"data"}}
-	results, err := compareResources(fetcher, resources, opts)
+	results, err := compareResources(context.Background(), fetcher, resources, opts)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -510,7 +511,7 @@ func TestCompareResourcesWithStrategy(t *testing.T) {
 
 	// live strategy → changed
 	liveOpts := diff.CompareOptions{ContextLines: 3, Strategy: diff.StrategyLive}
-	results, err := compareResources(fetcher, resources, liveOpts)
+	results, err := compareResources(context.Background(), fetcher, resources, liveOpts)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -520,7 +521,7 @@ func TestCompareResourcesWithStrategy(t *testing.T) {
 
 	// last-applied strategy → unchanged
 	lastAppliedOpts := diff.CompareOptions{ContextLines: 3, Strategy: diff.StrategyLastApplied}
-	results, err = compareResources(fetcher, resources, lastAppliedOpts)
+	results, err = compareResources(context.Background(), fetcher, resources, lastAppliedOpts)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -547,7 +548,7 @@ func TestCompareResourcesUnchanged(t *testing.T) {
 		{APIVersion: "v1", Kind: "ConfigMap", Name: "my-cm", Namespace: "default", Object: localObj},
 	}
 
-	results, err := compareResources(fetcher, resources)
+	results, err := compareResources(context.Background(), fetcher, resources, diff.DefaultCompareOptions())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -577,7 +578,7 @@ func TestCompareResourcesChanged(t *testing.T) {
 		{APIVersion: "v1", Kind: "ConfigMap", Name: "my-cm", Namespace: "default", Object: localObj},
 	}
 
-	results, err := compareResources(fetcher, resources)
+	results, err := compareResources(context.Background(), fetcher, resources, diff.DefaultCompareOptions())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -600,7 +601,7 @@ func TestCompareResourcesNew(t *testing.T) {
 		{APIVersion: "v1", Kind: "ConfigMap", Name: "new-cm", Namespace: "default", Object: localObj},
 	}
 
-	results, err := compareResources(fetcher, resources)
+	results, err := compareResources(context.Background(), fetcher, resources, diff.DefaultCompareOptions())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -849,7 +850,7 @@ func TestExecuteDiff(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			err := executeDiff(fetcher, resources, tt.flags, &buf)
+			err := executeDiff(context.Background(), fetcher, resources, tt.flags, &buf)
 			if tt.errNil && err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -880,7 +881,7 @@ func TestExecuteDiffWithChanges(t *testing.T) {
 
 	// With noExitCode=true, should not call os.Exit
 	var buf bytes.Buffer
-	err := executeDiff(fetcher, resources, diffFlags{output: "json", contextLines: 3, noExitCode: true}, &buf)
+	err := executeDiff(context.Background(), fetcher, resources, diffFlags{output: "json", contextLines: 3, noExitCode: true}, &buf)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -913,7 +914,7 @@ func TestExecuteDiffLastApplied(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	err := executeDiff(fetcher, resources, diffFlags{
+	err := executeDiff(context.Background(), fetcher, resources, diffFlags{
 		output:       "plain",
 		contextLines: 3,
 		diffStrategy: "last-applied",
@@ -941,7 +942,7 @@ func TestCompareResourcesMultiple(t *testing.T) {
 		{APIVersion: "apps/v1", Kind: "Deployment", Name: "app", Namespace: "default", Object: deploy},
 	}
 
-	results, err := compareResources(fetcher, resources)
+	results, err := compareResources(context.Background(), fetcher, resources, diff.DefaultCompareOptions())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -953,5 +954,34 @@ func TestCompareResourcesMultiple(t *testing.T) {
 	}
 	if results[1].Status != diff.StatusNew {
 		t.Errorf("expected deploy new, got %s", results[1].Status)
+	}
+}
+
+func TestExecuteDiffReturnsErrChangesDetected(t *testing.T) {
+	localObj := testutil.NewTestObj("v1", "ConfigMap", "cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "new-value"},
+	})
+	clusterObj := testutil.NewTestObj("v1", "ConfigMap", "cm", "default", map[string]interface{}{
+		"data": map[string]interface{}{"key": "old-value"},
+	})
+
+	fetcher := &mockFetcher{
+		resources: map[string]*unstructured.Unstructured{
+			"v1/ConfigMap/default/cm": clusterObj,
+		},
+	}
+
+	resources := []source.Resource{
+		{APIVersion: "v1", Kind: "ConfigMap", Name: "cm", Namespace: "default", Object: localObj},
+	}
+
+	// noExitCode=false → should return ErrChangesDetected
+	var buf bytes.Buffer
+	err := executeDiff(context.Background(), fetcher, resources, diffFlags{output: "json", contextLines: 3, noExitCode: false}, &buf)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !errors.Is(err, ErrChangesDetected) {
+		t.Errorf("expected ErrChangesDetected, got: %v", err)
 	}
 }
