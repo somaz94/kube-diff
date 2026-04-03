@@ -2,24 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-03-25)
+## [v0.4.2](https://github.com/somaz94/kube-diff/compare/v0.4.1...v0.4.2) (2026-04-03)
 
 ### Features
 
 - add branch and pr workflow targets to Makefile ([49d3363](https://github.com/somaz94/kube-diff/commit/49d3363f956c94ceb0ac4a97e9b498383b2c1308))
 - add Scoop bucket support for Windows distribution ([b5a1ccf](https://github.com/somaz94/kube-diff/commit/b5a1ccf2791a07869068b2f580ec26e5d793858f))
 
+### Bug Fixes
+
+- add missing errors import, extract ErrChangesDetected from os.Exit ([53e65c6](https://github.com/somaz94/kube-diff/commit/53e65c6be1185348b3bdbd063a1da91b68aa61b8))
+
 ### Documentation
 
+- remove duplicate rules covered by global CLAUDE.md ([8b52108](https://github.com/somaz94/kube-diff/commit/8b52108228e80bbf57613c6e357032d399261619))
 - add specific version install instructions to README ([8d7cbf9](https://github.com/somaz94/kube-diff/commit/8d7cbf973131f664949c27c27a9a78407361293b))
 - add Uninstall section to README ([89b6ec0](https://github.com/somaz94/kube-diff/commit/89b6ec00a48085dc20ee48f99a56923822c379cd))
 
 ### Continuous Integration
 
+- add changelog category groups in goreleaser config ([705700c](https://github.com/somaz94/kube-diff/commit/705700cb76553f17e0eee818885c431d023a0334))
 - add auto-generated PR body script and limit push trigger to main ([69dd46e](https://github.com/somaz94/kube-diff/commit/69dd46e27fc9fc1c6b47cb3aff6c4927d8f80bd9))
 
 ### Chores
 
+- remove duplicate rules from CLAUDE.md (moved to global) ([cd442f5](https://github.com/somaz94/kube-diff/commit/cd442f5f60c9e613fe4a004584adc15b47224f5a))
+- add git config protection to CLAUDE.md ([bdf5b97](https://github.com/somaz94/kube-diff/commit/bdf5b9769b2e30cc503d7948f76a3ee853cff500))
 - **deps:** bump azure/setup-helm from 4 to 5 ([8cdb976](https://github.com/somaz94/kube-diff/commit/8cdb976f1c4ae957d7f7eee6981e4bc167c5ab4d))
 - **deps:** bump the go-minor group with 2 updates (#2) ([#2](https://github.com/somaz94/kube-diff/pull/2)) ([4f703bc](https://github.com/somaz94/kube-diff/commit/4f703bca8058f5dd585c2fb00056a83140d889db))
 
