@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased (2026-04-15)
+
+### Chores
+
+- **deps:** bump dependabot/fetch-metadata from 2 to 3 ([3d8aefa](https://github.com/somaz94/kube-diff/commit/3d8aefa503f7b183c13744a7f4ec8b398cf5cc7e))
+
+<br/>
+
 ## [v0.4.2](https://github.com/somaz94/kube-diff/compare/v0.4.1...v0.4.2) (2026-04-03)
 
 ### Features
