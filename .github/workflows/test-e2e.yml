@@ -38,6 +38,9 @@ jobs:
 
       - name: Install Helm
         uses: azure/setup-helm@v5
+        with:
+          version: v3.16.4
+          token: ${{ github.token }}
 
       - name: Install Kustomize
         run: |
