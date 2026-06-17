@@ -140,7 +140,7 @@ current-context: test-context
 users:
 - name: test-user
   user:
-    token: fake-token
+    token: example-token
 `
 	if err := os.WriteFile(kubeconfig, []byte(content), 0600); err != nil {
 		t.Fatal(err)
