@@ -2,12 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-04-15)
+## Unreleased (2026-06-24)
+
+### Documentation
+
+- document DCO sign-off requirement in CONTRIBUTING ([227466d](https://github.com/somaz94/kube-diff/commit/227466d764e8b8919ec08faf68825f63c0d40905))
+
+### Tests
+
+- sanitize kubeconfig fixture token to example value ([19eaee0](https://github.com/somaz94/kube-diff/commit/19eaee0e7c6bb359c18583c5b0dfc76d3383207a))
+
+### Continuous Integration
+
+- pin Helm version and authenticate setup-helm to reduce CI flakes ([59516c6](https://github.com/somaz94/kube-diff/commit/59516c698da4dc5921fd560ef664d85349e04628))
+- add DCO check via shared reusable workflow ([41dbd3d](https://github.com/somaz94/kube-diff/commit/41dbd3dd92138ae8dec2dd657aa3feb11dbdc0e4))
+- add concurrency guards to recurring workflows ([cd2bed9](https://github.com/somaz94/kube-diff/commit/cd2bed95520ce12248d8615e0ae936d347ef461d))
 
 ### Chores
 
+- **deps:** bump actions/checkout from 6 to 7 ([6ffa209](https://github.com/somaz94/kube-diff/commit/6ffa20962b1c88318937f5eb641bd5f9389fde93))
+- **deps:** bump the go-minor group with 2 updates (#10) ([#10](https://github.com/somaz94/kube-diff/pull/10)) ([c4f01bf](https://github.com/somaz94/kube-diff/commit/c4f01bf73798e9ed3c39465d6335e49598ea7ffb))
+- **deps:** bump the go-minor group with 2 updates (#9) ([#9](https://github.com/somaz94/kube-diff/pull/9)) ([c4f99ef](https://github.com/somaz94/kube-diff/commit/c4f99efa9332b6557398355c4704d0363760475d))
+- **deps:** bump github.com/fsnotify/fsnotify in the go-minor group (#8) ([#8](https://github.com/somaz94/kube-diff/pull/8)) ([30da3ea](https://github.com/somaz94/kube-diff/commit/30da3eaf2913b979878f98add33ea43fa8bae479))
+- **deps:** bump the go-minor group with 2 updates (#7) ([#7](https://github.com/somaz94/kube-diff/pull/7)) ([e618c4f](https://github.com/somaz94/kube-diff/commit/e618c4fe3071636457230798671c995220a9cb3d))
+- **deps:** bump the go-minor group with 2 updates (#6) ([#6](https://github.com/somaz94/kube-diff/pull/6)) ([e89b0c2](https://github.com/somaz94/kube-diff/commit/e89b0c2545dfdd00c20a5d5aa3f37d5f7a2b6c27))
 - **deps:** bump dependabot/fetch-metadata from 2 to 3 ([3d8aefa](https://github.com/somaz94/kube-diff/commit/3d8aefa503f7b183c13744a7f4ec8b398cf5cc7e))
 - **deps:** bump actions/github-script from 8 to 9 ([8f70ad6](https://github.com/somaz94/kube-diff/commit/8f70ad6187d8e51b3cf2277a3d673e8ff3496d04))
+
+### Contributors
+
+- somaz
 
 <br/>
 
