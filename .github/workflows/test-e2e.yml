@@ -6,11 +6,19 @@ on:
       - '.github/workflows/**'
       - '**/*.md'
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
 jobs:
   test-e2e:
     name: E2E Demo
+    # Gate the kind-based e2e on fork PRs: push/dispatch and same-repo PRs
+    # always run; a fork PR runs only after a maintainer comments /ok-to-test
+    # (which applies the ok-to-test label).
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository ||
+      contains(github.event.pull_request.labels.*.name, 'ok-to-test')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
