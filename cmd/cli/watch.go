@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/somaz94/kube-diff/internal/source"
+	"github.com/somaz94/kube-diff/pkg/source"
 	"github.com/spf13/cobra"
 )
 

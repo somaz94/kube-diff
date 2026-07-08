@@ -11,10 +11,12 @@ CLI tool to compare local Kubernetes manifests against live cluster state.
 ```
 cmd/main.go                  # Entry point
 cmd/cli/                     # Cobra CLI (root, file, helm, kustomize, version)
-internal/source/             # Manifest loaders (file, helm, kustomize)
-internal/cluster/            # K8s dynamic client fetcher
-internal/diff/               # Normalization + unified diff
-internal/report/             # Color/JSON/Markdown output
+pkg/source/                  # Manifest loaders (file, helm, kustomize)
+pkg/cluster/                 # K8s dynamic client fetcher (+ NewFetcherFromConfig)
+pkg/diff/                    # Normalization + unified diff
+pkg/report/                  # Color/JSON/Markdown output
+pkg/engine/                  # load→fetch→compare orchestrator (importable as a library)
+internal/testutil/           # Shared test helpers
 Makefile                     # Build, test, lint, cover, bench
 .goreleaser.yml              # Multi-platform build + Krew
 ```

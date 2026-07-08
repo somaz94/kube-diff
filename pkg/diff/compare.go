@@ -44,8 +44,8 @@ func DefaultCompareOptions() CompareOptions {
 	}
 }
 
-// DiffResult holds the comparison result for a single resource.
-type DiffResult struct {
+// Result holds the comparison result for a single resource.
+type Result struct {
 	APIVersion string
 	Kind       string
 	Name       string
@@ -55,7 +55,7 @@ type DiffResult struct {
 }
 
 // ResourceKey returns a human-readable identifier for the resource.
-func (d *DiffResult) ResourceKey() string {
+func (d *Result) ResourceKey() string {
 	if d.Namespace != "" {
 		return fmt.Sprintf("%s/%s (namespace: %s)", d.Kind, d.Name, d.Namespace)
 	}
@@ -63,13 +63,13 @@ func (d *DiffResult) ResourceKey() string {
 }
 
 // Compare compares a local resource against a cluster resource.
-func Compare(local, cluster *unstructured.Unstructured, opts ...CompareOptions) (*DiffResult, error) {
+func Compare(local, cluster *unstructured.Unstructured, opts ...CompareOptions) (*Result, error) {
 	opt := DefaultCompareOptions()
 	if len(opts) > 0 {
 		opt = opts[0]
 	}
 
-	result := &DiffResult{
+	result := &Result{
 		APIVersion: local.GetAPIVersion(),
 		Kind:       local.GetKind(),
 		Name:       local.GetName(),

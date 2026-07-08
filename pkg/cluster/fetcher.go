@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -39,6 +41,18 @@ func NewFetcher(kubeconfig, kubecontext string) (*Fetcher, error) {
 		return nil, fmt.Errorf("failed to build kubeconfig: %w", err)
 	}
 
+	return NewFetcherFromConfig(config)
+}
+
+// NewFetcherFromConfig creates a new cluster Fetcher from an existing
+// *rest.Config. This is the entry point for in-cluster consumers such as a
+// controller-runtime manager, which already hold a REST config and should not
+// go through kubeconfig file loading.
+func NewFetcherFromConfig(config *rest.Config) (*Fetcher, error) {
+	if config == nil {
+		return nil, errors.New("rest config must not be nil")
+	}
+
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
@@ -47,6 +61,13 @@ func NewFetcher(kubeconfig, kubecontext string) (*Fetcher, error) {
 	return &Fetcher{
 		client: client,
 	}, nil
+}
+
+// NewFetcherFromClient creates a Fetcher from an existing dynamic client.
+// Useful for tests and for consumers that build a dynamic client themselves.
+// The client must be non-nil; a nil client defers failure to the first Get call.
+func NewFetcherFromClient(client dynamic.Interface) *Fetcher {
+	return &Fetcher{client: client}
 }
 
 // Get retrieves a single resource from the cluster.

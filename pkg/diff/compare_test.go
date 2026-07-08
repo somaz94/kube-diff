@@ -95,7 +95,7 @@ func TestCompareIgnoresClusterFields(t *testing.T) {
 }
 
 func TestResourceKeyWithNamespace(t *testing.T) {
-	r := &DiffResult{Kind: "Deployment", Name: "app", Namespace: "production"}
+	r := &Result{Kind: "Deployment", Name: "app", Namespace: "production"}
 	expected := "Deployment/app (namespace: production)"
 	if r.ResourceKey() != expected {
 		t.Errorf("expected %q, got %q", expected, r.ResourceKey())
@@ -103,7 +103,7 @@ func TestResourceKeyWithNamespace(t *testing.T) {
 }
 
 func TestResourceKeyWithoutNamespace(t *testing.T) {
-	r := &DiffResult{Kind: "ClusterRole", Name: "admin"}
+	r := &Result{Kind: "ClusterRole", Name: "admin"}
 	expected := "ClusterRole/admin"
 	if r.ResourceKey() != expected {
 		t.Errorf("expected %q, got %q", expected, r.ResourceKey())
@@ -114,7 +114,7 @@ func TestCompareDeletedResource(t *testing.T) {
 	cluster := testutil.NewTestObj("v1", "Secret", "old-secret", "default", nil)
 
 	// For deleted resources, local is the cluster resource with StatusDeleted
-	result := &DiffResult{
+	result := &Result{
 		APIVersion: cluster.GetAPIVersion(),
 		Kind:       cluster.GetKind(),
 		Name:       cluster.GetName(),

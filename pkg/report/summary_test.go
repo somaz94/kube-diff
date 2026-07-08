@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/somaz94/kube-diff/internal/diff"
+	"github.com/somaz94/kube-diff/pkg/diff"
 )
 
-func makeResults() []*diff.DiffResult {
-	return []*diff.DiffResult{
+func makeResults() []*diff.Result {
+	return []*diff.Result{
 		{Kind: "Deployment", Name: "app-1", Namespace: "default", Status: diff.StatusChanged, Diff: "--- cluster\n+++ local\n@@ -1 +1 @@\n-replicas: 2\n+replicas: 3"},
 		{Kind: "Service", Name: "svc-1", Namespace: "default", Status: diff.StatusUnchanged},
 		{Kind: "ConfigMap", Name: "cm-new", Namespace: "default", Status: diff.StatusNew},
@@ -41,7 +41,7 @@ func TestNewSummaryCounts(t *testing.T) {
 func TestHasChanges(t *testing.T) {
 	tests := []struct {
 		name     string
-		results  []*diff.DiffResult
+		results  []*diff.Result
 		expected bool
 	}{
 		{
@@ -51,28 +51,28 @@ func TestHasChanges(t *testing.T) {
 		},
 		{
 			name: "no changes",
-			results: []*diff.DiffResult{
+			results: []*diff.Result{
 				{Kind: "Service", Name: "svc", Status: diff.StatusUnchanged},
 			},
 			expected: false,
 		},
 		{
 			name: "new resource counts as change",
-			results: []*diff.DiffResult{
+			results: []*diff.Result{
 				{Kind: "ConfigMap", Name: "cm", Status: diff.StatusNew},
 			},
 			expected: true,
 		},
 		{
 			name: "deleted resource counts as change",
-			results: []*diff.DiffResult{
+			results: []*diff.Result{
 				{Kind: "Secret", Name: "s", Status: diff.StatusDeleted},
 			},
 			expected: true,
 		},
 		{
 			name:     "empty results",
-			results:  []*diff.DiffResult{},
+			results:  []*diff.Result{},
 			expected: false,
 		},
 	}
@@ -90,7 +90,7 @@ func TestHasChanges(t *testing.T) {
 func TestExitCode(t *testing.T) {
 	tests := []struct {
 		name     string
-		results  []*diff.DiffResult
+		results  []*diff.Result
 		expected int
 	}{
 		{
@@ -100,7 +100,7 @@ func TestExitCode(t *testing.T) {
 		},
 		{
 			name: "no changes",
-			results: []*diff.DiffResult{
+			results: []*diff.Result{
 				{Kind: "Service", Name: "svc", Status: diff.StatusUnchanged},
 			},
 			expected: 0,
@@ -149,7 +149,7 @@ func TestPrintColorOutput(t *testing.T) {
 }
 
 func TestPrintColorShowsDiff(t *testing.T) {
-	results := []*diff.DiffResult{
+	results := []*diff.Result{
 		{Kind: "Deployment", Name: "app", Status: diff.StatusChanged, Diff: "--- cluster\n+++ local\n-old\n+new"},
 	}
 	s := NewSummary(results)
@@ -203,7 +203,7 @@ func TestPrintJSON(t *testing.T) {
 }
 
 func TestPrintJSONEmptyResults(t *testing.T) {
-	s := NewSummary([]*diff.DiffResult{})
+	s := NewSummary([]*diff.Result{})
 	var buf bytes.Buffer
 	if err := s.PrintJSON(&buf); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -238,7 +238,7 @@ func TestColorizeDiff(t *testing.T) {
 }
 
 func TestPrintColorDeletedResource(t *testing.T) {
-	results := []*diff.DiffResult{
+	results := []*diff.Result{
 		{Kind: "Secret", Name: "old-secret", Namespace: "prod", Status: diff.StatusDeleted},
 	}
 	s := NewSummary(results)
@@ -258,7 +258,7 @@ func TestPrintColorDeletedResource(t *testing.T) {
 }
 
 func TestPrintColorOnlyUnchanged(t *testing.T) {
-	results := []*diff.DiffResult{
+	results := []*diff.Result{
 		{Kind: "Service", Name: "svc-1", Status: diff.StatusUnchanged},
 		{Kind: "Service", Name: "svc-2", Status: diff.StatusUnchanged},
 	}
@@ -323,7 +323,7 @@ func TestPrintMarkdown(t *testing.T) {
 }
 
 func TestPrintMarkdownNoDiffs(t *testing.T) {
-	results := []*diff.DiffResult{
+	results := []*diff.Result{
 		{Kind: "Service", Name: "svc", Namespace: "default", Status: diff.StatusUnchanged},
 	}
 	s := NewSummary(results)
@@ -357,7 +357,7 @@ func TestPrintSummaryOnly(t *testing.T) {
 }
 
 func TestPrintPlainClusterScoped(t *testing.T) {
-	results := []*diff.DiffResult{
+	results := []*diff.Result{
 		{Kind: "ClusterRole", Name: "admin", Status: diff.StatusNew},
 	}
 	s := NewSummary(results)
@@ -403,7 +403,7 @@ func TestPrintTable(t *testing.T) {
 }
 
 func TestPrintTableClusterScoped(t *testing.T) {
-	results := []*diff.DiffResult{
+	results := []*diff.Result{
 		{Kind: "ClusterRole", Name: "admin", Status: diff.StatusNew},
 	}
 	s := NewSummary(results)
@@ -417,7 +417,7 @@ func TestPrintTableClusterScoped(t *testing.T) {
 }
 
 func TestPrintJSONResourceFields(t *testing.T) {
-	results := []*diff.DiffResult{
+	results := []*diff.Result{
 		{Kind: "Deployment", Name: "app", Namespace: "staging", Status: diff.StatusChanged},
 		{Kind: "ClusterRole", Name: "admin", Status: diff.StatusNew},
 	}

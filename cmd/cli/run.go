@@ -8,10 +8,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/somaz94/kube-diff/internal/cluster"
-	"github.com/somaz94/kube-diff/internal/diff"
-	"github.com/somaz94/kube-diff/internal/report"
-	"github.com/somaz94/kube-diff/internal/source"
+	"github.com/somaz94/kube-diff/pkg/cluster"
+	"github.com/somaz94/kube-diff/pkg/diff"
+	"github.com/somaz94/kube-diff/pkg/engine"
+	"github.com/somaz94/kube-diff/pkg/report"
+	"github.com/somaz94/kube-diff/pkg/source"
 	"github.com/spf13/cobra"
 )
 
@@ -186,7 +187,7 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 // when differences are found and noExitCode is not set.
 func executeDiff(ctx context.Context, fetcher cluster.ResourceFetcher, resources []source.Resource, f diffFlags, w io.Writer) error {
 	opts := buildCompareOptions(f)
-	results, err := compareResources(ctx, fetcher, resources, opts)
+	results, err := engine.Compare(ctx, fetcher, resources, opts)
 	if err != nil {
 		return err
 	}
@@ -200,30 +201,6 @@ func executeDiff(ctx context.Context, fetcher cluster.ResourceFetcher, resources
 		return ErrChangesDetected
 	}
 	return nil
-}
-
-// compareResources compares local resources against the cluster using the given fetcher.
-func compareResources(ctx context.Context, fetcher cluster.ResourceFetcher, resources []source.Resource, opts diff.CompareOptions) ([]*diff.DiffResult, error) {
-	var results []*diff.DiffResult
-	for _, r := range resources {
-		clusterObj, err := fetcher.Get(ctx, r.APIVersion, r.Kind, r.Namespace, r.Name)
-		if err != nil {
-			// Resource not found in cluster → new
-			result, compareErr := diff.Compare(r.Object, nil, opts)
-			if compareErr != nil {
-				return nil, compareErr
-			}
-			results = append(results, result)
-			continue
-		}
-
-		result, compareErr := diff.Compare(r.Object, clusterObj, opts)
-		if compareErr != nil {
-			return nil, compareErr
-		}
-		results = append(results, result)
-	}
-	return results, nil
 }
 
 // parseSelector parses a label selector string like "app=nginx,env=prod"

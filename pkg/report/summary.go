@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/somaz94/kube-diff/internal/diff"
+	"github.com/somaz94/kube-diff/pkg/diff"
 )
 
 // ANSI color codes
@@ -21,7 +21,7 @@ const (
 
 // Summary holds aggregated diff results.
 type Summary struct {
-	Results   []*diff.DiffResult
+	Results   []*diff.Result
 	New       int
 	Changed   int
 	Unchanged int
@@ -30,7 +30,7 @@ type Summary struct {
 }
 
 // NewSummary creates a summary from diff results.
-func NewSummary(results []*diff.DiffResult) *Summary {
+func NewSummary(results []*diff.Result) *Summary {
 	s := &Summary{
 		Results: results,
 		Total:   len(results),

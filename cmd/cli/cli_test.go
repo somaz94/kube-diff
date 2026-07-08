@@ -10,10 +10,11 @@ import (
 	"testing"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/somaz94/kube-diff/internal/diff"
-	"github.com/somaz94/kube-diff/internal/report"
-	"github.com/somaz94/kube-diff/internal/source"
 	"github.com/somaz94/kube-diff/internal/testutil"
+	"github.com/somaz94/kube-diff/pkg/diff"
+	"github.com/somaz94/kube-diff/pkg/engine"
+	"github.com/somaz94/kube-diff/pkg/report"
+	"github.com/somaz94/kube-diff/pkg/source"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -251,7 +252,7 @@ func TestCompareResourcesWithOptions(t *testing.T) {
 
 	// With ignore-field, data should be ignored → unchanged
 	opts := diff.CompareOptions{ContextLines: 3, IgnoreFields: []string{"data"}}
-	results, err := compareResources(context.Background(), fetcher, resources, opts)
+	results, err := engine.Compare(context.Background(), fetcher, resources, opts)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -511,7 +512,7 @@ func TestCompareResourcesWithStrategy(t *testing.T) {
 
 	// live strategy → changed
 	liveOpts := diff.CompareOptions{ContextLines: 3, Strategy: diff.StrategyLive}
-	results, err := compareResources(context.Background(), fetcher, resources, liveOpts)
+	results, err := engine.Compare(context.Background(), fetcher, resources, liveOpts)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -521,7 +522,7 @@ func TestCompareResourcesWithStrategy(t *testing.T) {
 
 	// last-applied strategy → unchanged
 	lastAppliedOpts := diff.CompareOptions{ContextLines: 3, Strategy: diff.StrategyLastApplied}
-	results, err = compareResources(context.Background(), fetcher, resources, lastAppliedOpts)
+	results, err = engine.Compare(context.Background(), fetcher, resources, lastAppliedOpts)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -548,7 +549,7 @@ func TestCompareResourcesUnchanged(t *testing.T) {
 		{APIVersion: "v1", Kind: "ConfigMap", Name: "my-cm", Namespace: "default", Object: localObj},
 	}
 
-	results, err := compareResources(context.Background(), fetcher, resources, diff.DefaultCompareOptions())
+	results, err := engine.Compare(context.Background(), fetcher, resources, diff.DefaultCompareOptions())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -578,7 +579,7 @@ func TestCompareResourcesChanged(t *testing.T) {
 		{APIVersion: "v1", Kind: "ConfigMap", Name: "my-cm", Namespace: "default", Object: localObj},
 	}
 
-	results, err := compareResources(context.Background(), fetcher, resources, diff.DefaultCompareOptions())
+	results, err := engine.Compare(context.Background(), fetcher, resources, diff.DefaultCompareOptions())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -601,7 +602,7 @@ func TestCompareResourcesNew(t *testing.T) {
 		{APIVersion: "v1", Kind: "ConfigMap", Name: "new-cm", Namespace: "default", Object: localObj},
 	}
 
-	results, err := compareResources(context.Background(), fetcher, resources, diff.DefaultCompareOptions())
+	results, err := engine.Compare(context.Background(), fetcher, resources, diff.DefaultCompareOptions())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -660,7 +661,7 @@ func TestBuildCompareOptions(t *testing.T) {
 }
 
 func TestPrintReport(t *testing.T) {
-	results := []*diff.DiffResult{
+	results := []*diff.Result{
 		{Kind: "ConfigMap", Name: "cm", Namespace: "default", Status: diff.StatusNew},
 		{Kind: "Deployment", Name: "app", Namespace: "default", Status: diff.StatusChanged, Diff: "--- a\n+++ b\n-old\n+new"},
 	}
@@ -801,7 +802,7 @@ func TestRunWatchInvalidSourceType(t *testing.T) {
 }
 
 func TestPrintReportWritesToWriter(t *testing.T) {
-	results := []*diff.DiffResult{
+	results := []*diff.Result{
 		{Kind: "Service", Name: "svc", Namespace: "default", Status: diff.StatusUnchanged},
 	}
 	summary := report.NewSummary(results)
@@ -942,7 +943,7 @@ func TestCompareResourcesMultiple(t *testing.T) {
 		{APIVersion: "apps/v1", Kind: "Deployment", Name: "app", Namespace: "default", Object: deploy},
 	}
 
-	results, err := compareResources(context.Background(), fetcher, resources, diff.DefaultCompareOptions())
+	results, err := engine.Compare(context.Background(), fetcher, resources, diff.DefaultCompareOptions())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

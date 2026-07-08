@@ -75,10 +75,16 @@ Guide for building, testing, and contributing to kube-diff.
 | Directory | Description |
 |-----------|-------------|
 | `cmd/cli/` | Cobra CLI commands and flag definitions |
-| `internal/source/` | Manifest loaders: file (YAML), helm (template), kustomize (build) |
-| `internal/cluster/` | Kubernetes dynamic client for fetching live resources |
-| `internal/diff/` | Resource normalization and unified diff generation |
-| `internal/report/` | Output formatting (color, plain, JSON, markdown) |
+| `pkg/source/` | Manifest loaders: file (YAML), helm (template), kustomize (build) |
+| `pkg/cluster/` | Kubernetes dynamic client for fetching live resources |
+| `pkg/diff/` | Resource normalization and unified diff generation |
+| `pkg/report/` | Output formatting (color, plain, JSON, markdown) |
+| `pkg/engine/` | Orchestrates load → fetch → compare; importable by external consumers |
+| `internal/testutil/` | Shared test helpers |
+
+The `pkg/` packages are exported so other projects can import the diff engine as
+a library — e.g. an in-cluster controller can call `engine.Compare(...)` with a
+`cluster.Fetcher` built via `NewFetcherFromConfig(*rest.Config)`.
 
 <br/>
 
@@ -114,15 +120,16 @@ make bench           # Run benchmarks
 
 ### Test Coverage
 
-Current coverage: **92.6%**
+Current coverage: **86.4%**
 
 | Package | Coverage |
 |---------|----------|
-| `cmd/cli` | 100% |
-| `internal/cluster` | 96.9% |
-| `internal/diff` | 91.3% |
-| `internal/report` | 100% |
-| `internal/source` | 88.7% |
+| `cmd/cli` | 73.6% |
+| `pkg/cluster` | 91.7% |
+| `pkg/diff` | 94.4% |
+| `pkg/engine` | 88.9% |
+| `pkg/report` | 98.1% |
+| `pkg/source` | 88.7% |
 
 ### Test Patterns
 
