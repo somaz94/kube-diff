@@ -63,8 +63,14 @@ jobs:
 
       - name: Install Kustomize
         run: |
-          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          # Pin a release and download the asset directly. The upstream
+          # install_kustomize.sh queries the GitHub API unauthenticated and
+          # flakes on rate limits, leaving no tarball for tar to open.
+          KUSTOMIZE_VERSION=v5.5.0
+          curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" -o kustomize.tar.gz
+          tar -xzf kustomize.tar.gz
           sudo mv kustomize /usr/local/bin/
+          kustomize version
 
       - name: Run integration tests
         run: go test ./... -tags=integration -v -race
