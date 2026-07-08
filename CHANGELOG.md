@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-06-24)
+## [v0.5.0](https://github.com/somaz94/kube-diff/compare/v0.4.2...v0.5.0) (2026-07-08)
+
+### Features
+
+- add BytesSource for in-memory YAML manifests ([18914d7](https://github.com/somaz94/kube-diff/commit/18914d7d6ed81a30282f94e62ddee7ab1de2fc1b))
+- extract diff engine into importable pkg/ with engine orchestrator ([60627c4](https://github.com/somaz94/kube-diff/commit/60627c47bd0e5abebe8d7f48c84f5362922767ae))
 
 ### Documentation
 
@@ -14,6 +19,14 @@ All notable changes to this project will be documented in this file.
 
 ### Continuous Integration
 
+- adopt semantic-pr, labels, lock-threads, PR size, and auto-assign reusables ([8fd933e](https://github.com/somaz94/kube-diff/commit/8fd933e4ec2743655c50be923b3364c16abdf18d))
+- use reusable stale-issues workflow ([54e9e28](https://github.com/somaz94/kube-diff/commit/54e9e282389d52acf035bd757ddc93e827543c0f))
+- use reusable issue-greeting workflow ([802570a](https://github.com/somaz94/kube-diff/commit/802570af74dec980c6c4d53a23066386de4d3aeb))
+- use reusable dependabot-auto-merge workflow ([d5e3318](https://github.com/somaz94/kube-diff/commit/d5e3318888fb592562d8f545bda6fd2348b724b1))
+- use reusable contributors workflow ([25211c4](https://github.com/somaz94/kube-diff/commit/25211c4300368a8214bc4f7b78362158d8f5a3a9))
+- gate e2e on fork PRs via ok-to-test label ([3e35d0d](https://github.com/somaz94/kube-diff/commit/3e35d0d6c5d0e7d3ca55c6d6d7ef22ef2efac07a))
+- add ok-to-test workflow stub ([9c88879](https://github.com/somaz94/kube-diff/commit/9c88879ad031f004570dbe971b66fb98fc9827c6))
+- add PR welcome workflow stub ([46d6348](https://github.com/somaz94/kube-diff/commit/46d6348b60b1efb2399b91189e81feb2a3fd0b21))
 - pin Helm version and authenticate setup-helm to reduce CI flakes ([59516c6](https://github.com/somaz94/kube-diff/commit/59516c698da4dc5921fd560ef664d85349e04628))
 - add DCO check via shared reusable workflow ([41dbd3d](https://github.com/somaz94/kube-diff/commit/41dbd3dd92138ae8dec2dd657aa3feb11dbdc0e4))
 - add concurrency guards to recurring workflows ([cd2bed9](https://github.com/somaz94/kube-diff/commit/cd2bed95520ce12248d8615e0ae936d347ef461d))
