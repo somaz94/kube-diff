@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased (2026-07-22)
+
+### Documentation
+
+- remove DCO sign-off instructions ([b1f2d1d](https://github.com/somaz94/kube-diff/commit/b1f2d1d2e3be4bad1b8788fa95971dbaeacf33e3))
+
+### Continuous Integration
+
+- remove DCO workflow ([f824129](https://github.com/somaz94/kube-diff/commit/f824129b4a5bf0f7a7ec9d36077407727a557864))
+- pin kustomize install to fix flaky rate-limited download ([de5396d](https://github.com/somaz94/kube-diff/commit/de5396dba336bd20a0f86e9d54351e058824118b))
+
+### Chores
+
+- **deps:** bump actions/setup-go from 6 to 7 ([9a9296a](https://github.com/somaz94/kube-diff/commit/9a9296a2775a853be28c2897ddd4f95ff38590ef))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.5.0](https://github.com/somaz94/kube-diff/compare/v0.4.2...v0.5.0) (2026-07-08)
 
 ### Features
