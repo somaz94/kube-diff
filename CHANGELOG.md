@@ -2,11 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-07-22)
+## [v0.5.1](https://github.com/somaz94/kube-diff/compare/v0.5.0...v0.5.1) (2026-08-04)
+
+### Bug Fixes
+
+- defer a throttled watch re-run instead of dropping the change ([aa1d998](https://github.com/somaz94/kube-diff/commit/aa1d99825c123c85261113a835545303d0d10411))
 
 ### Documentation
 
 - remove DCO sign-off instructions ([b1f2d1d](https://github.com/somaz94/kube-diff/commit/b1f2d1d2e3be4bad1b8788fa95971dbaeacf33e3))
+
+### Tests
+
+- cover the watch run path, the exported Fetcher constructors, and the test helper ([c3a55e8](https://github.com/somaz94/kube-diff/commit/c3a55e858045078d72e7dede3313f152279dd4a4))
 
 ### Continuous Integration
 
@@ -15,6 +23,7 @@ All notable changes to this project will be documented in this file.
 
 ### Chores
 
+- **deps:** bump the go-minor group with 2 updates (#13) ([#13](https://github.com/somaz94/kube-diff/pull/13)) ([c3d19c7](https://github.com/somaz94/kube-diff/commit/c3d19c7b1f7eba35940cd1d62c67e3ed06621381))
 - **deps:** bump actions/setup-go from 6 to 7 ([9a9296a](https://github.com/somaz94/kube-diff/commit/9a9296a2775a853be28c2897ddd4f95ff38590ef))
 
 ### Contributors
