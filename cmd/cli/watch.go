@@ -55,7 +55,7 @@ func runWatch(cmd *cobra.Command, sourceType, path string, interval time.Duratio
 	if err != nil {
 		return fmt.Errorf("failed to create file watcher: %w", err)
 	}
-	defer watcher.Close()
+	defer func() { _ = watcher.Close() }()
 
 	// Add path and subdirectories
 	if err := addWatchPaths(watcher, absPath); err != nil {

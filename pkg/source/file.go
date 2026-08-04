@@ -64,7 +64,7 @@ func (f *FileSource) loadFile(path string) ([]Resource, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	return parseYAML(file)
 }
