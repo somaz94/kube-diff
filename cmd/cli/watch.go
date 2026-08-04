@@ -86,7 +86,11 @@ func runWatch(cmd *cobra.Command, sourceType, path string, interval time.Duratio
 			debounceTimer.Reset(500 * time.Millisecond)
 
 		case <-debounceTimer.C:
-			if interval > 0 && time.Since(lastRun) < interval {
+			// --interval throttles how often the diff re-runs. A change that
+			// lands inside the interval is deferred to the end of it; dropping
+			// it would leave the user's last edit never diffed.
+			if delay := nextRunDelay(interval, lastRun, time.Now()); delay > 0 {
+				debounceTimer.Reset(delay)
 				continue
 			}
 			fmt.Fprintf(os.Stderr, "\n--- Change detected at %s ---\n\n", time.Now().Format("15:04:05"))
@@ -100,6 +104,20 @@ func runWatch(cmd *cobra.Command, sourceType, path string, interval time.Duratio
 			fmt.Fprintf(os.Stderr, "Watch error: %v\n", err)
 		}
 	}
+}
+
+// nextRunDelay reports how long a pending change must wait before the diff may
+// re-run. Zero means it can run now: either --interval is unset, or enough time
+// has already passed since the previous run.
+func nextRunDelay(interval time.Duration, lastRun, now time.Time) time.Duration {
+	if interval <= 0 {
+		return 0
+	}
+	remaining := interval - now.Sub(lastRun)
+	if remaining <= 0 {
+		return 0
+	}
+	return remaining
 }
 
 func runDiffForWatch(cmd *cobra.Command, sourceType, path string) {
