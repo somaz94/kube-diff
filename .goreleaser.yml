@@ -68,17 +68,41 @@ release:
   draft: false
   prerelease: auto
 
-brews:
-  - repository:
+# Homebrew. A cask, not a formula: GoReleaser deprecated "brews" in v2.10 and
+# documents removal in v2.16, while this pins no GoReleaser version.
+#
+# Linux keeps working — a cask whose only artifact is a binary installs there
+# the same way, despite cask documentation being written for macOS.
+#
+# Releases before this one shipped a formula, and Homebrew treats the two as
+# separate packages, so "brew upgrade" will not carry anyone across. The
+# release notes have to tell them:
+#   brew uninstall --formula kube-diff
+#   brew install --cask somaz94/tap/kube-diff
+# Installing the cask without removing the formula first leaves both in place
+# and silently keeps running the old binary.
+#
+# The old kube-diff.rb in the tap has to be deleted and a tap_migrations.json
+# entry added AFTER the first cask release, never before — while the formula
+# exists it shadows the cask, and deleting it early breaks installs in the gap.
+homebrew_casks:
+  - name: kube-diff
+    binaries:
+      - kube-diff
+    directory: Casks
+    repository:
       owner: somaz94
       name: homebrew-tap
     homepage: "https://github.com/somaz94/kube-diff"
     description: "Compare local Kubernetes manifests against live cluster state"
-    license: "Apache-2.0"
-    install: |
-      bin.install "kube-diff"
-    test: |
-      system "#{bin}/kube-diff", "version"
+    hooks:
+      post:
+        # Homebrew quarantines cask downloads, and this binary is not signed or
+        # notarized, so macOS would refuse to run it without this.
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/kube-diff"]
+          end
     caveats: |
       🎉 kube-diff installed!
 
