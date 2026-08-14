@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.5.2](https://github.com/somaz94/kube-diff/compare/v0.5.1...v0.5.2) (2026-08-14)
+
+### Continuous Integration
+
+- add a golangci-lint config scoped to defect-finding linters ([16cabad](https://github.com/somaz94/kube-diff/commit/16cabadd8bf46db19a7f651f16674caeecf9a184))
+
+### Chores
+
+- publish the Homebrew package as a cask instead of a deprecated formula ([0c94d2c](https://github.com/somaz94/kube-diff/commit/0c94d2c0b9e00f61a47b46ebfa70228020b3945c))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.5.1](https://github.com/somaz94/kube-diff/compare/v0.5.0...v0.5.1) (2026-08-04)
 
 ### Bug Fixes
