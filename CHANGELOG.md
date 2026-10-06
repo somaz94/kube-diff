@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.5.4](https://github.com/somaz94/kube-diff/compare/v0.5.3...v0.5.4) (2026-10-06)
+
+### Bug Fixes
+
+- report only NotFound fetch errors as new resources ([d289f29](https://github.com/somaz94/kube-diff/commit/d289f293e24890b29a85a3e143101be4554cb6af))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.5.3](https://github.com/somaz94/kube-diff/compare/v0.5.2...v0.5.3) (2026-10-06)
 
 ### Bug Fixes
