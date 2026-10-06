@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/fsnotify/fsnotify"
@@ -93,6 +94,52 @@ func TestKustomizeCommandWithInvalidPath(t *testing.T) {
 	err := rootCmd.Execute()
 	if err == nil {
 		t.Fatal("expected error for nonexistent overlay")
+	}
+}
+
+// executeCaptured runs rootCmd and returns what cobra itself printed.
+// PersistentPreRun sets SilenceUsage on the subcommand it runs, so that is reset around each call.
+func executeCaptured(t *testing.T, args ...string) (string, error) {
+	t.Helper()
+	resetSilenceUsage := func() {
+		for _, c := range rootCmd.Commands() {
+			c.SilenceUsage = false
+		}
+	}
+	resetSilenceUsage()
+	var buf bytes.Buffer
+	rootCmd.SetOut(&buf)
+	rootCmd.SetErr(&buf)
+	rootCmd.SetArgs(args)
+	t.Cleanup(func() {
+		rootCmd.SetOut(nil)
+		rootCmd.SetErr(nil)
+		resetSilenceUsage()
+	})
+	err := rootCmd.Execute()
+	return buf.String(), err
+}
+
+func TestRuntimeErrorPrintsNeitherUsageNorError(t *testing.T) {
+	out, err := executeCaptured(t, "file", "/tmp/nonexistent-kube-diff-test")
+	if err == nil {
+		t.Fatal("expected error for nonexistent path")
+	}
+	if strings.Contains(out, "Usage:") {
+		t.Errorf("runtime error should not print usage, got:\n%s", out)
+	}
+	if strings.Contains(out, "Error:") {
+		t.Errorf("cobra should leave the error line to main, got:\n%s", out)
+	}
+}
+
+func TestArgumentErrorStillPrintsUsage(t *testing.T) {
+	out, err := executeCaptured(t, "file")
+	if err == nil {
+		t.Fatal("expected error when file command called without args")
+	}
+	if !strings.Contains(out, "Usage:") {
+		t.Errorf("argument error should print usage, got:\n%s", out)
 	}
 }
 

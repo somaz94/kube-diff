@@ -10,6 +10,13 @@ var rootCmd = &cobra.Command{
 	Long: `kube-diff compares your local Kubernetes manifests (plain YAML, Helm charts,
 or Kustomize overlays) against the actual state in your cluster, providing
 a clear, colorized diff with a summary report.`,
+	// main prints the error once; cobra would print it a second time.
+	SilenceErrors: true,
+	// Runs after flag and argument validation, so usage still shows for those
+	// errors but not for runtime failures such as a missing path.
+	PersistentPreRun: func(cmd *cobra.Command, _ []string) {
+		cmd.SilenceUsage = true
+	},
 }
 
 func Execute() error {
