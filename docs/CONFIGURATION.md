@@ -83,24 +83,9 @@ When comparing resources, kube-diff automatically strips cluster-managed fields 
 
 ## Supported Resource Types
 
-kube-diff uses the Kubernetes dynamic client, so it supports **all resource types** including CRDs. Resource names are automatically pluralized:
+kube-diff supports **all resource types** the cluster serves, including CRDs. It does not guess resource names from the kind: for each `apiVersion` in your manifests it reads the API server's discovery document for that group version (`/api/v1`, `/apis/<group>/<version>`) and takes the resource name and scope from it. Irregular plurals such as `Endpoints` and a CRD's own plural resolve exactly as `kubectl` resolves them.
 
-### Built-in pluralization
-
-| Kind | Resource |
-|------|----------|
-| Deployment | deployments |
-| Service | services |
-| ConfigMap | configmaps |
-| Secret | secrets |
-| Pod | pods |
-| Ingress | **ingresses** |
-| NetworkPolicy | **networkpolicies** |
-| StorageClass | **storageclasses** |
-| IngressClass | **ingressclasses** |
-| EndpointSlice | **endpointslices** |
-| ResourceQuota | **resourcequotas** |
-| PriorityClass | **priorityclasses** |
-| RuntimeClass | **runtimeclasses** |
-
-Bold entries use special pluralization rules. All other kinds follow the simple `lowercase + s` pattern.
+- A cluster-scoped kind is fetched without a namespace, even if the manifest sets `metadata.namespace`.
+- A namespaced kind whose manifest has no `metadata.namespace` is looked up without one and reported as `NEW`. kube-diff does not apply the kubeconfig context's default namespace.
+- A kind the cluster does not serve, such as a CRD that is not installed yet, is reported as `NEW`.
+- A discovery document the API server cannot return, such as one for an unavailable aggregated API, is an error (exit `2`), not `NEW`.

@@ -3,7 +3,6 @@ package cluster
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -55,8 +54,8 @@ func TestGuessResourceName(t *testing.T) {
 	}
 }
 
-func TestResolveGVR(t *testing.T) {
-	f := &Fetcher{}
+func TestResolveWithoutDiscovery(t *testing.T) {
+	f := NewFetcherFromClient(nil)
 
 	tests := []struct {
 		name       string
@@ -102,9 +101,12 @@ func TestResolveGVR(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gvr, err := f.resolveGVR(tt.apiVersion, tt.kind)
+			gvr, namespaced, err := f.resolve(context.Background(), tt.apiVersion, tt.kind)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
+			}
+			if !namespaced {
+				t.Error("namespaced = false, want true: without discovery the namespace is sent as given")
 			}
 			if gvr.Group != tt.wantGroup {
 				t.Errorf("Group: got %q, want %q", gvr.Group, tt.wantGroup)
@@ -119,9 +121,9 @@ func TestResolveGVR(t *testing.T) {
 	}
 }
 
-func TestResolveGVRInvalidApiVersion(t *testing.T) {
-	f := &Fetcher{}
-	_, err := f.resolveGVR("invalid/version/extra", "Pod")
+func TestResolveInvalidApiVersion(t *testing.T) {
+	f := NewFetcherFromClient(nil)
+	_, _, err := f.resolve(context.Background(), "invalid/version/extra", "Pod")
 	if err == nil {
 		t.Fatal("expected error for invalid apiVersion")
 	}
@@ -312,9 +314,14 @@ func TestGetResourceNotFound(t *testing.T) {
 }
 
 // engine.Compare reports a resource as new only on NotFound, so Get must keep a
-// 404 (including the plain-text one for a group or kind the server does not
-// serve, e.g. an uninstalled CRD) distinguishable from a 403.
+// 404 (including the plain-text one for a kind removed after discovery, e.g. a
+// CRD uninstalled while the Fetcher's cache still lists it) distinguishable
+// from a 403.
 func TestGetErrorClassification(t *testing.T) {
+	widgets := &metav1.APIResourceList{GroupVersion: "example.com/v1", APIResources: []metav1.APIResource{
+		{Name: "widgets", Kind: "Widget", Namespaced: true},
+	}}
+
 	tests := []struct {
 		name        string
 		status      int
@@ -330,7 +337,7 @@ func TestGetErrorClassification(t *testing.T) {
 			wantReason:  metav1.StatusReasonNotFound,
 		},
 		{
-			name:        "kind not served",
+			name:        "kind removed after discovery",
 			status:      http.StatusNotFound,
 			contentType: "text/plain; charset=utf-8",
 			body:        "404 page not found\n",
@@ -347,12 +354,11 @@ func TestGetErrorClassification(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			srv := apiServer(t, []*metav1.APIResourceList{widgets}, nil, func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", tt.contentType)
 				w.WriteHeader(tt.status)
 				_, _ = w.Write([]byte(tt.body))
-			}))
-			defer srv.Close()
+			})
 
 			f, err := NewFetcherFromConfig(&rest.Config{Host: srv.URL})
 			if err != nil {

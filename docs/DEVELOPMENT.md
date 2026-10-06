@@ -76,7 +76,7 @@ Guide for building, testing, and contributing to kube-diff.
 |-----------|-------------|
 | `cmd/cli/` | Cobra CLI commands and flag definitions |
 | `pkg/source/` | Manifest loaders: file (YAML), helm (template), kustomize (build) |
-| `pkg/cluster/` | Kubernetes dynamic client for fetching live resources |
+| `pkg/cluster/` | Resolves kinds through API discovery and fetches live resources with the dynamic client |
 | `pkg/diff/` | Resource normalization and unified diff generation |
 | `pkg/report/` | Output formatting (color, plain, JSON, markdown) |
 | `pkg/engine/` | Orchestrates load → fetch → compare; importable by external consumers |
@@ -85,6 +85,15 @@ Guide for building, testing, and contributing to kube-diff.
 The `pkg/` packages are exported so other projects can import the diff engine as
 a library — e.g. an in-cluster controller can call `engine.Compare(...)` with a
 `cluster.Fetcher` built via `NewFetcherFromConfig(*rest.Config)`.
+
+`NewFetcherFromConfig` resolves each kind to its resource name and scope through
+API discovery and caches the answer per group version, so one long-lived
+`Fetcher` serves every comparison; a kind missing from the cache (a CRD installed
+after the first lookup) is looked up again on a later call. A consumer that
+already builds its own dynamic client gets the same behavior from
+`NewFetcherWithDiscovery(client, discovery)`, which accepts client-go's discovery
+client. `NewFetcherFromClient(client)` has no discovery and guesses resource names
+from the kind, which is wrong for irregular plurals such as `Endpoints`.
 
 `engine.Compare` reports a resource as new only when the fetcher's error satisfies
 `apierrors.IsNotFound` or `meta.IsNoMatchError`; any other fetch error is returned
@@ -142,6 +151,7 @@ Current coverage: **86.4%**
 - **Table-driven tests** for multiple scenarios (e.g., `guessResourceName`, `HasChanges`)
 - **Temp directories** with `t.TempDir()` for file I/O tests
 - **Fake dynamic client** (`dynamicfake.NewSimpleDynamicClient`) for cluster tests
+- **Fake discovery** (`fakediscovery.FakeDiscovery`) or an `httptest` server serving discovery documents for kind-resolution tests
 - **Fake kubeconfig** files for `NewFetcher` tests
 
 <br/>

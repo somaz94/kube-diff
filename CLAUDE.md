@@ -21,6 +21,8 @@ Makefile                     # Build, test, lint, cover, bench
 .goreleaser.yml              # Multi-platform build + Krew
 ```
 
+<br/>
+
 ## Build & Test
 
 ```bash
@@ -40,13 +42,15 @@ make vet             # go vet
 ## Key Concepts
 
 - **Source**: Loads manifests from file/helm/kustomize
-- **Fetcher**: Uses client-go dynamic client to get live resources from cluster (`ResourceFetcher` interface)
+- **Fetcher**: Resolves each kind to its resource and scope through API discovery (cached per group version, refetched on a miss), then gets live resources with the client-go dynamic client (`ResourceFetcher` interface). `NewFetcherFromClient` has no discovery and falls back to guessing plurals
 - **Normalize**: Strips cluster-managed fields (managedFields, uid, status, etc.)
 - **RemoveFields**: Removes user-specified field paths via `--ignore-field` (dot notation)
 - **Compare**: Generates unified diff per resource, accepts `CompareOptions` for context lines, ignore fields, and diff strategy
 - **ExtractLastApplied**: Parses `kubectl.kubernetes.io/last-applied-configuration` annotation for `--diff-strategy last-applied`
 - **Report**: Outputs color/plain/json/markdown/table summary
 - **Watch**: fsnotify-based file watcher for auto re-run on changes
+
+<br/>
 
 ## CLI Flags
 
@@ -71,6 +75,8 @@ make vet             # go vet
 |------|-------|-------------|
 | `--values` | `-f` | Values files (repeatable) |
 | `--release` | `-r` | Release name (default: release) |
+
+<br/>
 
 ## Exit Codes
 

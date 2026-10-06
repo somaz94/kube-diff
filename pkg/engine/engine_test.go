@@ -8,12 +8,18 @@ import (
 	"testing"
 
 	"github.com/somaz94/kube-diff/internal/testutil"
+	"github.com/somaz94/kube-diff/pkg/cluster"
 	"github.com/somaz94/kube-diff/pkg/diff"
 	"github.com/somaz94/kube-diff/pkg/source"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	fakediscovery "k8s.io/client-go/discovery/fake"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
+	clienttesting "k8s.io/client-go/testing"
 )
 
 // fakeFetcher implements cluster.ResourceFetcher. A name in errs fails with
@@ -235,5 +241,38 @@ func TestRun_FetchError(t *testing.T) {
 	_, err := Run(context.Background(), src, fetcher, diff.DefaultCompareOptions())
 	if !apierrors.IsForbidden(err) {
 		t.Fatalf("want Forbidden to propagate from Run, got %v", err)
+	}
+}
+
+// The real discovery-backed Fetcher and Compare must agree: a kind whose CRD is
+// not installed is new, and an irregular plural is still found and compared.
+func TestCompare_DiscoveryBackedFetcher(t *testing.T) {
+	endpoints := testutil.NewTestObj("v1", "Endpoints", "kubernetes", "default", nil)
+	client := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
+	if _, err := client.Resource(schema.GroupVersionResource{Version: "v1", Resource: "endpoints"}).
+		Namespace("default").Create(context.Background(), endpoints, metav1.CreateOptions{}); err != nil {
+		t.Fatalf("create endpoints: %v", err)
+	}
+	disc := &fakediscovery.FakeDiscovery{Fake: &clienttesting.Fake{Resources: []*metav1.APIResourceList{{
+		GroupVersion: "v1",
+		APIResources: []metav1.APIResource{{Name: "endpoints", Kind: "Endpoints", Namespaced: true}},
+	}}}}
+	fetcher := cluster.NewFetcherWithDiscovery(client, disc)
+
+	widget := testutil.NewTestObj("example.com/v1", "Widget", "w", "default", nil)
+	resources := []source.Resource{resource("kubernetes", endpoints), resource("w", widget)}
+
+	results, err := Compare(context.Background(), fetcher, resources, diff.DefaultCompareOptions())
+	if err != nil {
+		t.Fatalf("Compare returned error: %v", err)
+	}
+	want := []diff.DiffStatus{diff.StatusUnchanged, diff.StatusNew}
+	if len(results) != len(want) {
+		t.Fatalf("want %d results, got %+v", len(want), results)
+	}
+	for i, w := range want {
+		if results[i].Status != w {
+			t.Errorf("results[%d].Status = %v, want %v", i, results[i].Status, w)
+		}
 	}
 }

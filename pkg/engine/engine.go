@@ -56,8 +56,8 @@ func Compare(
 }
 
 // isAbsent reports whether a fetch error means the object does not exist. An
-// unserved kind (CRD not installed) counts: the built-in Fetcher gets a 404 for
-// it, while a RESTMapper-backed fetcher gets a no-match error.
+// unserved kind (CRD not installed) counts: discovery reports it as a no-match
+// error, and a request that still reaches the server for it gets a 404.
 func isAbsent(err error) bool {
 	return apierrors.IsNotFound(err) || meta.IsNoMatchError(err)
 }

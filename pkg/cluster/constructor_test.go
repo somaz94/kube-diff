@@ -68,3 +68,13 @@ func TestNewFetcherFromConfig_NilConfig(t *testing.T) {
 		t.Errorf("NewFetcherFromConfig(nil) = %v, want nil alongside the error", f)
 	}
 }
+
+func TestNewFetcherFromConfig_UnreadableCA(t *testing.T) {
+	_, err := NewFetcherFromConfig(&rest.Config{
+		Host:            "https://127.0.0.1:6443",
+		TLSClientConfig: rest.TLSClientConfig{CAFile: "/nonexistent/ca.crt"},
+	})
+	if err == nil {
+		t.Fatal("NewFetcherFromConfig() error = nil, want the CA read failure")
+	}
+}
