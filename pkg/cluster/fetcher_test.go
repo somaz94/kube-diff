@@ -2,14 +2,19 @@ package cluster
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
+	"k8s.io/client-go/rest"
 )
 
 func TestGuessResourceName(t *testing.T) {
@@ -301,8 +306,67 @@ func TestGetResourceNotFound(t *testing.T) {
 	}
 
 	_, err := f.Get(context.Background(), "v1", "ConfigMap", "default", "nonexistent")
-	if err == nil {
-		t.Fatal("expected error for nonexistent resource")
+	if !apierrors.IsNotFound(err) {
+		t.Fatalf("expected NotFound for nonexistent resource, got %v", err)
+	}
+}
+
+// engine.Compare reports a resource as new only on NotFound, so Get must keep a
+// 404 (including the plain-text one for a group or kind the server does not
+// serve, e.g. an uninstalled CRD) distinguishable from a 403.
+func TestGetErrorClassification(t *testing.T) {
+	tests := []struct {
+		name        string
+		status      int
+		contentType string
+		body        string
+		wantReason  metav1.StatusReason
+	}{
+		{
+			name:        "object missing",
+			status:      http.StatusNotFound,
+			contentType: "application/json",
+			body:        `{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"NotFound","code":404}`,
+			wantReason:  metav1.StatusReasonNotFound,
+		},
+		{
+			name:        "kind not served",
+			status:      http.StatusNotFound,
+			contentType: "text/plain; charset=utf-8",
+			body:        "404 page not found\n",
+			wantReason:  metav1.StatusReasonNotFound,
+		},
+		{
+			name:        "forbidden",
+			status:      http.StatusForbidden,
+			contentType: "application/json",
+			body:        `{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"Forbidden","code":403}`,
+			wantReason:  metav1.StatusReasonForbidden,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", tt.contentType)
+				w.WriteHeader(tt.status)
+				_, _ = w.Write([]byte(tt.body))
+			}))
+			defer srv.Close()
+
+			f, err := NewFetcherFromConfig(&rest.Config{Host: srv.URL})
+			if err != nil {
+				t.Fatalf("NewFetcherFromConfig() error = %v", err)
+			}
+
+			_, err = f.Get(context.Background(), "example.com/v1", "Widget", "default", "w")
+			if err == nil {
+				t.Fatal("Get() error = nil, want an error")
+			}
+			if got := apierrors.ReasonForError(err); got != tt.wantReason {
+				t.Errorf("ReasonForError(%v) = %q, want %q", err, got, tt.wantReason)
+			}
+		})
 	}
 }
 

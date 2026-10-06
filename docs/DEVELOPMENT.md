@@ -86,6 +86,12 @@ The `pkg/` packages are exported so other projects can import the diff engine as
 a library — e.g. an in-cluster controller can call `engine.Compare(...)` with a
 `cluster.Fetcher` built via `NewFetcherFromConfig(*rest.Config)`.
 
+`engine.Compare` reports a resource as new only when the fetcher's error satisfies
+`apierrors.IsNotFound` or `meta.IsNoMatchError`; any other fetch error is returned
+wrapped with the resource identity. A custom `cluster.ResourceFetcher`, including a
+test fake, must therefore return a NotFound error (for example
+`apierrors.NewNotFound(...)`) to signal a missing object.
+
 <br/>
 
 ## Build

@@ -16,20 +16,27 @@ import (
 	"github.com/somaz94/kube-diff/pkg/engine"
 	"github.com/somaz94/kube-diff/pkg/report"
 	"github.com/somaz94/kube-diff/pkg/source"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// mockFetcher implements cluster.ResourceFetcher for testing.
+// mockFetcher implements cluster.ResourceFetcher for testing. A key in errs
+// fails with that error; a key absent from resources gets a NotFound.
 type mockFetcher struct {
 	resources map[string]*unstructured.Unstructured
+	errs      map[string]error
 }
 
 func (m *mockFetcher) Get(_ context.Context, apiVersion, kind, namespace, name string) (*unstructured.Unstructured, error) {
 	key := fmt.Sprintf("%s/%s/%s/%s", apiVersion, kind, namespace, name)
+	if err, ok := m.errs[key]; ok {
+		return nil, err
+	}
 	if obj, ok := m.resources[key]; ok {
 		return obj, nil
 	}
-	return nil, fmt.Errorf("not found: %s", key)
+	return nil, apierrors.NewNotFound(schema.GroupResource{Resource: strings.ToLower(kind) + "s"}, name)
 }
 
 func TestExecute(t *testing.T) {
@@ -1031,5 +1038,28 @@ func TestExecuteDiffReturnsErrChangesDetected(t *testing.T) {
 	}
 	if !errors.Is(err, ErrChangesDetected) {
 		t.Errorf("expected ErrChangesDetected, got: %v", err)
+	}
+}
+
+func TestExecuteDiffReturnsFetchError(t *testing.T) {
+	localObj := testutil.NewTestObj("v1", "ConfigMap", "cm", "default", nil)
+	fetcher := &mockFetcher{errs: map[string]error{
+		"v1/ConfigMap/default/cm": apierrors.NewForbidden(schema.GroupResource{Resource: "configmaps"}, "cm", errors.New("RBAC denied")),
+	}}
+	resources := []source.Resource{
+		{APIVersion: "v1", Kind: "ConfigMap", Name: "cm", Namespace: "default", Object: localObj},
+	}
+
+	// A missing read grant must surface as an error (exit 2), not as a new resource (exit 1).
+	var buf bytes.Buffer
+	err := executeDiff(context.Background(), fetcher, resources, diffFlags{output: "json", contextLines: 3}, &buf)
+	if !apierrors.IsForbidden(err) {
+		t.Fatalf("expected Forbidden, got: %v", err)
+	}
+	if errors.Is(err, ErrChangesDetected) {
+		t.Error("a fetch error must not be reported as changes detected")
+	}
+	if buf.Len() != 0 {
+		t.Errorf("expected no report on fetch error, got %q", buf.String())
 	}
 }

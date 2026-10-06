@@ -397,7 +397,9 @@ Watch mode:
 |------|---------|----------|
 | `0` | No changes detected | Pipeline passes |
 | `1` | Changes detected (diff exists) | Can trigger review/alert |
-| `2` | Error occurred (invalid input, cluster unreachable, etc.) | Pipeline fails |
+| `2` | Error occurred (invalid input, cluster unreachable, no read permission on a compared kind, etc.) | Pipeline fails |
+
+A resource is reported as `NEW` only when the API server says it does not exist (or does not serve its kind). Any other read failure, such as `Forbidden` from a missing RBAC grant or a timeout, exits `2` rather than being counted as drift.
 
 > **Tip**: Use `--exit-code` to always exit 0 even when changes are detected. This is useful in CI pipelines where you want to report drift without failing the pipeline.
 
