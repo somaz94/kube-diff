@@ -313,10 +313,9 @@ func TestGetResourceNotFound(t *testing.T) {
 	}
 }
 
-// engine.Compare reports a resource as new only on NotFound, so Get must keep a
-// 404 (including the plain-text one for a kind removed after discovery, e.g. a
-// CRD uninstalled while the Fetcher's cache still lists it) distinguishable
-// from a 403.
+// engine.Compare reports new only on NotFound or no-match, so a 404 from Get
+// (including the plain-text one for a CRD uninstalled after discovery) must stay
+// distinguishable from a 403.
 func TestGetErrorClassification(t *testing.T) {
 	widgets := &metav1.APIResourceList{GroupVersion: "example.com/v1", APIResources: []metav1.APIResource{
 		{Name: "widgets", Kind: "Widget", Namespaced: true},

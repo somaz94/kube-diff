@@ -222,6 +222,47 @@ func TestGetDiscoveryErrorIsReturned(t *testing.T) {
 	}
 }
 
+// A failed discovery must not be cached: the next Get, inside the rediscovery
+// interval, asks again instead of answering no-match.
+func TestGetDiscoveryErrorIsNotCached(t *testing.T) {
+	f, disc, client := newDiscoveryFetcher(t, coreResources())
+	clock := time.Unix(1_700_000_000, 0)
+	f.now = func() time.Time { return clock }
+	mustCreate(t, client, endpointsGVR, testutil.NewTestObj("v1", "Endpoints", "kubernetes", "default", nil))
+
+	fail := true
+	disc.PrependReactor("get", "resource", func(clienttesting.Action) (bool, runtime.Object, error) {
+		if fail {
+			return true, nil, errors.New("discovery unavailable")
+		}
+		return false, nil, nil
+	})
+
+	if _, err := f.Get(context.Background(), "v1", "Endpoints", "default", "kubernetes"); err == nil || meta.IsNoMatchError(err) {
+		t.Fatalf("first Get() error = %v, want the discovery error", err)
+	}
+	fail = false
+	if _, err := f.Get(context.Background(), "v1", "Endpoints", "default", "kubernetes"); err != nil {
+		t.Fatalf("second Get() error = %v, want nil: a failed discovery must not be cached", err)
+	}
+	if got := discoveryCalls(disc); got != 2 {
+		t.Errorf("discovery documents fetched = %d, want 2", got)
+	}
+}
+
+func TestGetRejectsEmptyVersion(t *testing.T) {
+	f, disc, _ := newDiscoveryFetcher(t, coreResources())
+	for _, apiVersion := range []string{"", "apps/"} {
+		_, err := f.Get(context.Background(), apiVersion, "Deployment", "default", "d")
+		if err == nil || meta.IsNoMatchError(err) {
+			t.Errorf("Get(%q) error = %v, want a non-no-match error", apiVersion, err)
+		}
+	}
+	if got := discoveryCalls(disc); got != 0 {
+		t.Errorf("discovery documents fetched = %d, want 0", got)
+	}
+}
+
 // A failed rediscovery must surface too, not leave the stale no-match standing.
 func TestGetRediscoveryErrorIsReturned(t *testing.T) {
 	f, disc, _ := newDiscoveryFetcher(t, coreResources())
@@ -413,5 +454,22 @@ func TestNewFetcherFromConfigUndecodableDiscovery(t *testing.T) {
 	_, err = f.Get(context.Background(), "example.com/v1", "Widget", "default", "w")
 	if err == nil || meta.IsNoMatchError(err) || !strings.Contains(err.Error(), "decode discovery document") {
 		t.Errorf("Get() error = %v, want a decode error", err)
+	}
+}
+
+func TestNewFetcherFromConfigMismatchedDiscovery(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, &metav1.APIResourceList{GroupVersion: "other.example.com/v1"})
+	}))
+	t.Cleanup(srv.Close)
+
+	f, err := NewFetcherFromConfig(&rest.Config{Host: srv.URL})
+	if err != nil {
+		t.Fatalf("NewFetcherFromConfig() error = %v", err)
+	}
+
+	_, err = f.Get(context.Background(), "example.com/v1", "Widget", "default", "w")
+	if err == nil || meta.IsNoMatchError(err) || !strings.Contains(err.Error(), "want \"example.com/v1\"") {
+		t.Errorf("Get() error = %v, want a group version mismatch error", err)
 	}
 }

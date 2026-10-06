@@ -29,10 +29,12 @@ type ResourceFetcher interface {
 	Get(ctx context.Context, apiVersion, kind, namespace, name string) (*unstructured.Unstructured, error)
 }
 
-// Discoverer returns the resources the API server serves for one group version,
-// answering NotFound for a group version it does not serve. client-go's
-// *discovery.DiscoveryClient and its fake satisfy it, as does any
-// discovery.DiscoveryInterface wrapped with discovery.ToDiscoveryInterfaceWithContext.
+// Discoverer returns the resources the API server serves for one group version.
+// For a group version the server does not serve it must return an error
+// satisfying apierrors.IsNotFound, and every call must reach the server so a
+// newly installed CRD is seen; the Fetcher does its own caching. client-go's
+// *discovery.DiscoveryClient and its fake qualify. memory.NewMemCacheClient does
+// not: it answers ErrCacheNotFound and never refetches until invalidated.
 type Discoverer interface {
 	ServerResourcesForGroupVersionWithContext(ctx context.Context, groupVersion string) (*metav1.APIResourceList, error)
 }
@@ -87,12 +89,18 @@ func NewFetcherFromConfig(config *rest.Config) (*Fetcher, error) {
 		return nil, errors.New("rest config must not be nil")
 	}
 
-	client, err := dynamic.NewForConfig(config)
+	cfg := dynamic.ConfigFor(config)
+	httpClient, err := rest.HTTPClientFor(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
+	}
+
+	client, err := dynamic.NewForConfigAndClient(config, httpClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
-	restClient, err := rest.UnversionedRESTClientFor(dynamic.ConfigFor(config))
+	restClient, err := rest.UnversionedRESTClientForConfigAndClient(cfg, httpClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create discovery client: %w", err)
 	}
@@ -130,11 +138,11 @@ func NewFetcherFromClient(client dynamic.Interface) *Fetcher {
 
 // Get retrieves a single resource from the cluster.
 //
-// A kind the API server does not serve returns an error satisfying
-// meta.IsNoMatchError. A cluster-scoped kind is fetched without the namespace.
-// A namespaced kind with an empty namespace is requested without one, which
-// the API server answers with NotFound; callers that want a default namespace
-// must fill it in before calling Get.
+// With discovery, a kind the API server does not serve returns an error
+// satisfying meta.IsNoMatchError, and a cluster-scoped kind is fetched without
+// the namespace. A namespaced kind with an empty namespace is requested without
+// one, which the API server answers with NotFound; callers that want a default
+// namespace must fill it in before calling Get.
 func (f *Fetcher) Get(ctx context.Context, apiVersion, kind, namespace, name string) (*unstructured.Unstructured, error) {
 	gvr, namespaced, err := f.resolve(ctx, apiVersion, kind)
 	if err != nil {
@@ -165,6 +173,11 @@ func (f *Fetcher) resolve(ctx context.Context, apiVersion, kind string) (schema.
 
 	if f.discovery == nil {
 		return gv.WithResource(guessResourceName(kind)), true, nil
+	}
+	// An empty version would read /api/ or /apis/<group>/, which are not
+	// resource lists and would decode as "nothing served".
+	if gv.Version == "" {
+		return schema.GroupVersionResource{}, false, fmt.Errorf("invalid apiVersion %q: missing version", apiVersion)
 	}
 
 	f.mu.Lock()
@@ -227,7 +240,12 @@ func (d restDiscovery) ServerResourcesForGroupVersionWithContext(ctx context.Con
 		path = "/api/" + groupVersion
 	}
 
-	body, err := d.client.Get().AbsPath(path).SetHeader("Accept", "application/json").Do(ctx).Raw()
+	// Error() before Raw() keeps the server's Status message (e.g. which APIService is down).
+	result := d.client.Get().AbsPath(path).SetHeader("Accept", "application/json").Do(ctx)
+	if err := result.Error(); err != nil {
+		return nil, err
+	}
+	body, err := result.Raw()
 	if err != nil {
 		return nil, err
 	}
@@ -235,6 +253,9 @@ func (d restDiscovery) ServerResourcesForGroupVersionWithContext(ctx context.Con
 	list := &metav1.APIResourceList{}
 	if err := json.Unmarshal(body, list); err != nil {
 		return nil, fmt.Errorf("decode discovery document %s: %w", path, err)
+	}
+	if list.GroupVersion != groupVersion {
+		return nil, fmt.Errorf("discovery document %s is for %q, want %q", path, list.GroupVersion, groupVersion)
 	}
 	return list, nil
 }
