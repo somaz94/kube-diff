@@ -24,6 +24,10 @@ import (
 // whose CRD is not installed would refetch once per object.
 const rediscoveryInterval = 30 * time.Second
 
+// maxDiscoveryAge bounds how long a cached discovery document is trusted, so a
+// CRD recreated with a different plural or scope is picked up without a restart.
+const maxDiscoveryAge = 10 * time.Minute
+
 // ResourceFetcher is the interface for retrieving resources from a Kubernetes cluster.
 type ResourceFetcher interface {
 	Get(ctx context.Context, apiVersion, kind, namespace, name string) (*unstructured.Unstructured, error)
@@ -50,6 +54,7 @@ type Fetcher struct {
 
 	mu         sync.Mutex
 	discovered map[schema.GroupVersion]discoveredGV
+	inflight   map[schema.GroupVersion]chan struct{}
 }
 
 // discoveredGV is one cached discovery document; resources is nil when the
@@ -110,16 +115,19 @@ func NewFetcherFromConfig(config *rest.Config) (*Fetcher, error) {
 
 // NewFetcherWithDiscovery creates a Fetcher that resolves each kind to its
 // resource name and scope by reading the discovery document of the kind's
-// group version, once per group version. A kind the cached document lacks
-// triggers a refetch on a later Get (at most one per group version per
-// rediscoveryInterval, 30 seconds), so a CRD installed after the Fetcher was
-// built is found. A nil disc gives the same Fetcher as NewFetcherFromClient.
+// group version. A cached document is trusted for maxDiscoveryAge (10 minutes),
+// and a kind it lacks triggers a refetch at most once per rediscoveryInterval
+// (30 seconds), so a CRD installed, or recreated with a new plural or scope,
+// after the Fetcher was built is found. If refreshing an aged document fails, a
+// kind it still lists is served from it. A nil disc gives the same Fetcher as
+// NewFetcherFromClient.
 func NewFetcherWithDiscovery(client dynamic.Interface, disc Discoverer) *Fetcher {
 	return &Fetcher{
 		client:     client,
 		discovery:  disc,
 		now:        time.Now,
 		discovered: make(map[schema.GroupVersion]discoveredGV),
+		inflight:   make(map[schema.GroupVersion]chan struct{}),
 	}
 }
 
@@ -180,18 +188,10 @@ func (f *Fetcher) resolve(ctx context.Context, apiVersion, kind string) (schema.
 		return schema.GroupVersionResource{}, false, fmt.Errorf("invalid apiVersion %q: missing version", apiVersion)
 	}
 
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	entry, cached := f.discovered[gv]
-	resource := findKind(entry.resources, kind)
-	if !cached || (resource == nil && f.now().Sub(entry.fetchedAt) >= rediscoveryInterval) {
-		if entry, err = f.discoverLocked(ctx, gv); err != nil {
-			return schema.GroupVersionResource{}, false, err
-		}
-		resource = findKind(entry.resources, kind)
+	resource, err := f.lookup(ctx, gv, kind)
+	if err != nil {
+		return schema.GroupVersionResource{}, false, err
 	}
-
 	if resource == nil {
 		noMatch := &meta.NoKindMatchError{GroupKind: schema.GroupKind{Group: gv.Group, Kind: kind}, SearchedVersions: []string{gv.Version}}
 		return schema.GroupVersionResource{}, false, fmt.Errorf("resolve resource for kind %s: %w", kind, noMatch)
@@ -199,20 +199,70 @@ func (f *Fetcher) resolve(ctx context.Context, apiVersion, kind string) (schema.
 	return gv.WithResource(resource.Name), resource.Namespaced, nil
 }
 
-// discoverLocked fetches and caches gv's discovery document. The caller must
-// hold f.mu. NotFound means gv is not served and is cached like any answer;
-// any other error is returned uncached, so it is never mistaken for absence.
-func (f *Fetcher) discoverLocked(ctx context.Context, gv schema.GroupVersion) (discoveredGV, error) {
+// lookup returns kind's top-level resource in gv, or nil when gv does not serve
+// it. The discovery request runs without f.mu held, at most one per group
+// version at a time; other callers for that group version wait on it or on
+// their own ctx, and callers the cache can answer never wait.
+func (f *Fetcher) lookup(ctx context.Context, gv schema.GroupVersion, kind string) (*metav1.APIResource, error) {
+	for {
+		f.mu.Lock()
+		entry, cached := f.discovered[gv]
+		res := findKind(entry.resources, kind)
+		age := f.now().Sub(entry.fetchedAt)
+		if cached && age < maxDiscoveryAge && (res != nil || age < rediscoveryInterval) {
+			f.mu.Unlock()
+			return res, nil
+		}
+		if wait, busy := f.inflight[gv]; busy {
+			f.mu.Unlock()
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-wait:
+				continue
+			}
+		}
+		done := make(chan struct{})
+		f.inflight[gv] = done
+		f.mu.Unlock()
+
+		fresh, err := f.fetch(ctx, gv, done)
+		if err != nil {
+			if res != nil {
+				// An aged answer beats failing every comparison while discovery is down.
+				return res, nil
+			}
+			return nil, err
+		}
+		return findKind(fresh.resources, kind), nil
+	}
+}
+
+// fetch reads gv's discovery document without f.mu held, then caches it and
+// wakes waiters, even if the Discoverer panics. NotFound means gv is not served
+// and is cached like any answer; any other error is returned uncached, so it is
+// never mistaken for absence.
+func (f *Fetcher) fetch(ctx context.Context, gv schema.GroupVersion, done chan struct{}) (entry discoveredGV, err error) {
+	ok := false
+	defer func() {
+		f.mu.Lock()
+		if ok {
+			f.discovered[gv] = entry
+		}
+		delete(f.inflight, gv)
+		f.mu.Unlock()
+		close(done)
+	}()
+
 	list, err := f.discovery.ServerResourcesForGroupVersionWithContext(ctx, gv.String())
 	if err != nil && !apierrors.IsNotFound(err) {
 		return discoveredGV{}, fmt.Errorf("discover resources for %s: %w", gv, err)
 	}
-
-	entry := discoveredGV{fetchedAt: f.now()}
+	entry = discoveredGV{fetchedAt: f.now()}
 	if err == nil && list != nil {
 		entry.resources = list.APIResources
 	}
-	f.discovered[gv] = entry
+	ok = true
 	return entry, nil
 }
 

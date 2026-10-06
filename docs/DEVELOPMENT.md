@@ -89,7 +89,9 @@ a library — e.g. an in-cluster controller can call `engine.Compare(...)` with 
 `NewFetcherFromConfig` resolves each kind to its resource name and scope through
 API discovery and caches the answer per group version, so one long-lived
 `Fetcher` serves every comparison; a kind missing from the cache (a CRD installed
-after the first lookup) is looked up again on a later call. A consumer that
+after the first lookup) is looked up again on a later call, and every cached
+answer is refreshed after a bounded age so a recreated CRD is picked up without a
+restart. A slow discovery request never blocks lookups the cache can answer. A consumer that
 already builds its own dynamic client gets the same behavior from
 `NewFetcherWithDiscovery(client, discovery)`, which accepts client-go's discovery
 client. `NewFetcherFromClient(client)` has no discovery and guesses resource names

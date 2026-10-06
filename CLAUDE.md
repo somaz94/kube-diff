@@ -42,7 +42,7 @@ make vet             # go vet
 ## Key Concepts
 
 - **Source**: Loads manifests from file/helm/kustomize
-- **Fetcher**: Resolves each kind to its resource and scope through API discovery (cached per group version, refetched on a miss), then gets live resources with the client-go dynamic client (`ResourceFetcher` interface). `NewFetcherFromClient` has no discovery and falls back to guessing plurals
+- **Fetcher**: Resolves each kind to its resource and scope through API discovery (cached per group version with a bounded age, refetched on a miss), then gets live resources with the client-go dynamic client (`ResourceFetcher` interface). `NewFetcherFromClient` has no discovery and falls back to guessing plurals
 - **Normalize**: Strips cluster-managed fields (managedFields, uid, status, etc.)
 - **RemoveFields**: Removes user-specified field paths via `--ignore-field` (dot notation)
 - **Compare**: Generates unified diff per resource, accepts `CompareOptions` for context lines, ignore fields, and diff strategy

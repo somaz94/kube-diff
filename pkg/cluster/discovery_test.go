@@ -473,3 +473,146 @@ func TestNewFetcherFromConfigMismatchedDiscovery(t *testing.T) {
 		t.Errorf("Get() error = %v, want a group version mismatch error", err)
 	}
 }
+
+// gatedDiscoverer serves lists, holding any group version listed in gates until
+// its channel is closed; it reports each gated call on started.
+type gatedDiscoverer struct {
+	lists   map[string]*metav1.APIResourceList
+	gates   map[string]chan struct{}
+	started chan string
+}
+
+func (d *gatedDiscoverer) ServerResourcesForGroupVersionWithContext(ctx context.Context, gv string) (*metav1.APIResourceList, error) {
+	if gate, ok := d.gates[gv]; ok {
+		d.started <- gv
+		select {
+		case <-gate:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	if list, ok := d.lists[gv]; ok {
+		return list, nil
+	}
+	return nil, apierrors.NewNotFound(schema.GroupResource{}, gv)
+}
+
+func widgetResources(plural string, namespaced bool) *metav1.APIResourceList {
+	return &metav1.APIResourceList{GroupVersion: "example.com/v1", APIResources: []metav1.APIResource{
+		{Name: plural, Kind: "Widget", Namespaced: namespaced},
+	}}
+}
+
+// A slow discovery request for one group version must not stall lookups that
+// the cache can answer, and a waiter on the same group version must honor its ctx.
+func TestResolveDoesNotHoldLockAcrossDiscovery(t *testing.T) {
+	gate := make(chan struct{})
+	disc := &gatedDiscoverer{
+		lists:   map[string]*metav1.APIResourceList{"v1": coreResources(), "example.com/v1": widgetResources("widgets", true)},
+		gates:   map[string]chan struct{}{"example.com/v1": gate},
+		started: make(chan string, 1),
+	}
+	f := NewFetcherWithDiscovery(dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()), disc)
+	if _, _, err := f.resolve(context.Background(), "v1", "Endpoints"); err != nil {
+		t.Fatalf("warm the core cache: %v", err)
+	}
+
+	slow := make(chan error, 1)
+	go func() {
+		_, _, err := f.resolve(context.Background(), "example.com/v1", "Widget")
+		slow <- err
+	}()
+	<-disc.started
+	t.Cleanup(func() {
+		select {
+		case <-gate:
+		default:
+			close(gate)
+		}
+	})
+
+	cached := make(chan error, 1)
+	go func() {
+		_, _, err := f.resolve(context.Background(), "v1", "Endpoints")
+		cached <- err
+	}()
+	select {
+	case err := <-cached:
+		if err != nil {
+			t.Fatalf("cached resolve error = %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("cached resolve blocked behind another group version's discovery")
+	}
+
+	canceled, cancel := context.WithCancel(context.Background())
+	cancel()
+	waiter := make(chan error, 1)
+	go func() {
+		_, _, err := f.resolve(canceled, "example.com/v1", "Widget")
+		waiter <- err
+	}()
+	select {
+	case err := <-waiter:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("waiter error = %v, want context.Canceled", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("waiter with a canceled ctx did not return")
+	}
+
+	close(gate)
+	if err := <-slow; err != nil {
+		t.Fatalf("slow resolve error = %v", err)
+	}
+	if gvr, _, err := f.resolve(context.Background(), "example.com/v1", "Widget"); err != nil || gvr.Resource != "widgets" {
+		t.Fatalf("resolve after discovery = %v, %v; want widgets from the cache", gvr, err)
+	}
+}
+
+// A cached document is trusted only for maxDiscoveryAge, so a CRD recreated with
+// a new plural is picked up without a restart.
+func TestResolveRefreshesAgedDiscovery(t *testing.T) {
+	f, disc, _ := newDiscoveryFetcher(t, widgetResources("widgets", true))
+	clock := time.Unix(1_700_000_000, 0)
+	f.now = func() time.Time { return clock }
+
+	if gvr, _, err := f.resolve(context.Background(), "example.com/v1", "Widget"); err != nil || gvr.Resource != "widgets" {
+		t.Fatalf("first resolve = %v, %v", gvr, err)
+	}
+	disc.Resources = []*metav1.APIResourceList{widgetResources("widgetz", false)}
+
+	clock = clock.Add(maxDiscoveryAge - time.Second)
+	if gvr, _, _ := f.resolve(context.Background(), "example.com/v1", "Widget"); gvr.Resource != "widgets" {
+		t.Errorf("resolve inside maxDiscoveryAge = %s, want the cached widgets", gvr.Resource)
+	}
+
+	clock = clock.Add(time.Second)
+	gvr, namespaced, err := f.resolve(context.Background(), "example.com/v1", "Widget")
+	if err != nil || gvr.Resource != "widgetz" || namespaced {
+		t.Errorf("resolve after maxDiscoveryAge = %v, namespaced=%v, %v; want cluster-scoped widgetz", gvr, namespaced, err)
+	}
+}
+
+// When refreshing an aged document fails, a kind it still lists is served from
+// it rather than failing every comparison while discovery is down.
+func TestResolveServesAgedEntryWhenRefreshFails(t *testing.T) {
+	f, disc, _ := newDiscoveryFetcher(t, widgetResources("widgets", true))
+	clock := time.Unix(1_700_000_000, 0)
+	f.now = func() time.Time { return clock }
+	if _, _, err := f.resolve(context.Background(), "example.com/v1", "Widget"); err != nil {
+		t.Fatalf("first resolve: %v", err)
+	}
+
+	disc.PrependReactor("get", "resource", func(clienttesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.New("discovery unavailable")
+	})
+	clock = clock.Add(maxDiscoveryAge)
+
+	if gvr, _, err := f.resolve(context.Background(), "example.com/v1", "Widget"); err != nil || gvr.Resource != "widgets" {
+		t.Errorf("resolve with a failing refresh = %v, %v; want the aged widgets entry", gvr, err)
+	}
+	if got := discoveryCalls(disc); got != 2 {
+		t.Errorf("discovery documents fetched = %d, want 2 (the refresh was attempted)", got)
+	}
+}
