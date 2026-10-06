@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.6.1](https://github.com/somaz94/kube-diff/compare/v0.6.0...v0.6.1) (2026-10-06)
+
+### Bug Fixes
+
+- refresh aged discovery answers and fetch them without holding the fetcher lock ([01d473b](https://github.com/somaz94/kube-diff/commit/01d473b18a0d48c399b2d6b3d56d6be8bcd32e9e))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.6.0](https://github.com/somaz94/kube-diff/compare/v0.5.4...v0.6.0) (2026-10-06)
 
 ### Bug Fixes
