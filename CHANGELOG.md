@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.6.0](https://github.com/somaz94/kube-diff/compare/v0.5.4...v0.6.0) (2026-10-06)
+
+### Bug Fixes
+
+- tighten the discovery contract and share one HTTP client per fetcher ([4833bb6](https://github.com/somaz94/kube-diff/commit/4833bb6342149dff793706a5c14b7081989df0c4))
+- resolve resource kinds through API discovery instead of guessing plurals ([af6c9a5](https://github.com/somaz94/kube-diff/commit/af6c9a519a05e53ce993b6b5f57a2960f506739e))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.5.4](https://github.com/somaz94/kube-diff/compare/v0.5.3...v0.5.4) (2026-10-06)
 
 ### Bug Fixes
