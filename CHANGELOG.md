@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.5.3](https://github.com/somaz94/kube-diff/compare/v0.5.2...v0.5.3) (2026-10-06)
+
+### Bug Fixes
+
+- exit 2 on errors and skip usage output for runtime failures ([a6b279f](https://github.com/somaz94/kube-diff/commit/a6b279fc39751eea45d176dbce133165994594c8))
+
+### Continuous Integration
+
+- trim redundant comments in gitlab-mirror workflow ([33e228c](https://github.com/somaz94/kube-diff/commit/33e228c1e5a15a862d9d37df64b7c1c69e4f369e))
+- retry mirror pushes on transient remote failures ([9949bf5](https://github.com/somaz94/kube-diff/commit/9949bf52cecbdfaec937a9f4e505b384614db088))
+- drop the dead issue-close trigger from changelog generation ([5f583db](https://github.com/somaz94/kube-diff/commit/5f583db4e18e91129e7a16ec9fc4be633731633e))
+
+### Chores
+
+- **deps:** bump the go-minor group with 2 updates (#16) ([#16](https://github.com/somaz94/kube-diff/pull/16)) ([1c8dc4e](https://github.com/somaz94/kube-diff/commit/1c8dc4e70859d03072dc90c2f547feb44bb686c5))
+- **deps:** bump the go-minor group with 2 updates (#15) ([#15](https://github.com/somaz94/kube-diff/pull/15)) ([ba3467e](https://github.com/somaz94/kube-diff/commit/ba3467e7b417b584c23ccb1f174f0cc60a73c65f))
+- **deps:** bump the go-minor group with 2 updates (#14) ([#14](https://github.com/somaz94/kube-diff/pull/14)) ([08c967c](https://github.com/somaz94/kube-diff/commit/08c967c7898d3c8908b8933508c560d9c1599659))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.5.2](https://github.com/somaz94/kube-diff/compare/v0.5.1...v0.5.2) (2026-08-14)
 
 ### Continuous Integration
