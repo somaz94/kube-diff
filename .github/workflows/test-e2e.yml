@@ -35,14 +35,11 @@ jobs:
           make build
           sudo mv kube-diff /usr/local/bin/
 
-      - name: Install kind
-        run: |
-          curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
-          chmod +x ./kind
-          sudo mv ./kind /usr/local/bin/kind
-
+      # Pinned to a release so the kind it installs changes only through a Dependabot PR.
       - name: Create kind cluster
-        run: kind create cluster --wait 60s
+        uses: helm/kind-action@v1.15.0
+        with:
+          wait: 60s
 
       - name: Install Helm
         uses: azure/setup-helm@v5
