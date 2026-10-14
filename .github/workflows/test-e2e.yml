@@ -37,7 +37,7 @@ jobs:
 
       # Pinned to a release so the kind it installs changes only through a Dependabot PR.
       - name: Create kind cluster
-        uses: helm/kind-action@v1.15.0
+        uses: helm/kind-action@v1.15.1
         with:
           wait: 60s
 
