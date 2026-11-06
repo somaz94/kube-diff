@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.6.2](https://github.com/somaz94/kube-diff/compare/v0.6.1...v0.6.2) (2026-11-06)
+
+### Bug Fixes
+
+- default the namespace for manifests that set none and pass it to helm template ([08e5901](https://github.com/somaz94/kube-diff/commit/08e5901098410a0e90a5a060da35eeb4f3887243))
+
+### Documentation
+
+- add krew index step to the krew install command ([2eed5da](https://github.com/somaz94/kube-diff/commit/2eed5dacb62b55dbb91b29146ee54416594bdfea))
+- add related projects section to README ([a7ff690](https://github.com/somaz94/kube-diff/commit/a7ff6907a5a096475b6904f8672b238e93500f2a))
+- add a demo GIF of a Helm chart diffed against the cluster ([a1151a4](https://github.com/somaz94/kube-diff/commit/a1151a4b8f97e699f61b5614df56de70a0542260))
+
+### Continuous Integration
+
+- create the e2e kind cluster with a pinned helm/kind-action ([2763a0d](https://github.com/somaz94/kube-diff/commit/2763a0d004bf0104d3eaad39487adad96ed43b3e))
+
+### Chores
+
+- **deps:** bump the go-minor group with 2 updates (#18) ([#18](https://github.com/somaz94/kube-diff/pull/18)) ([12b10f2](https://github.com/somaz94/kube-diff/commit/12b10f2c72be4c9a14ad91a5efe7df1ec8ef5fb7))
+- **deps:** bump helm/kind-action (#17) ([#17](https://github.com/somaz94/kube-diff/pull/17)) ([c780c91](https://github.com/somaz94/kube-diff/commit/c780c9186828505de896b053979885f3821de2ef))
+- base create-pr.sh on origin/main ([8290ca4](https://github.com/somaz94/kube-diff/commit/8290ca497207f54fbc4d5a003c3f9a534d899ccc))
+- classify scoped and breaking commits in create-pr.sh ([1067e52](https://github.com/somaz94/kube-diff/commit/1067e528a22a0dde6397dc5a36709f06d9508ae9))
+- trim boilerplate comments in repo config and scripts ([cfb6bbd](https://github.com/somaz94/kube-diff/commit/cfb6bbd3455334125cefb7be76def7321e100eaa))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.6.1](https://github.com/somaz94/kube-diff/compare/v0.6.0...v0.6.1) (2026-10-06)
 
 ### Bug Fixes
