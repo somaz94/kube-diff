@@ -172,6 +172,15 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 <br/>
 
+## Related projects
+
+- [kube-diff-action](https://github.com/somaz94/kube-diff-action): Run kube-diff in GitHub Actions and post the drift as a pull request comment.
+- [kube-drift](https://github.com/somaz94/kube-drift): An operator that runs the same manifest-vs-cluster comparison on a schedule, inside the cluster.
+- [kube-ctx](https://github.com/somaz94/kube-ctx): Switch contexts and namespaces per terminal, with production guards and a built-in fuzzy picker.
+- [kube-events](https://github.com/somaz94/kube-events): View and summarize Kubernetes events, grouped by resource with warnings first.
+
+<br/>
+
 ## License
 
 This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
