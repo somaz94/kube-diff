@@ -1,0 +1,28 @@
+[33m~ CHANGED [0mConfigMap/demo-config (namespace: kube-diff-demo)
+[31m--- cluster[0m
+[32m+++ local[0m
+[36m@@ -1,7 +1,6 @@[0m
+ apiVersion: v1
+ data:
+     APP_ENV: production
+[31m-    DEBUG_MODE: "true"[0m
+     LOG_LEVEL: info
+     MAX_CONNECTIONS: "100"
+ kind: ConfigMap
+
+[32m★ NEW    [0mService/demo-svc (namespace: kube-diff-demo)
+[33m~ CHANGED [0mDeployment/demo-app (namespace: kube-diff-demo)
+[31m--- cluster[0m
+[32m+++ local[0m
+[36m@@ -6,7 +6,7 @@[0m
+     name: demo-app
+     namespace: kube-diff-demo
+ spec:
+[31m-    replicas: 5[0m
+[32m+    replicas: 2[0m
+     selector:
+         matchLabels:
+             app: demo
+
+
+Summary: 3 resources — [33m2 changed[0m, [32m1 new[0m

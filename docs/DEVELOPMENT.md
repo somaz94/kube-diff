@@ -10,6 +10,7 @@ Guide for building, testing, and contributing to kube-diff.
 - [Project Structure](#project-structure)
 - [Build](#build)
 - [Testing](#testing)
+- [Demo](#demo)
 - [CI/CD Workflows](#cicd-workflows)
 - [Conventions](#conventions)
 
@@ -155,6 +156,17 @@ Current coverage: **86.4%**
 - **Fake dynamic client** (`dynamicfake.NewSimpleDynamicClient`) for cluster tests
 - **Fake discovery** (`fakediscovery.FakeDiscovery`) or an `httptest` server serving discovery documents for kind-resolution tests
 - **Fake kubeconfig** files for `NewFetcher` tests
+
+<br/>
+
+## Demo
+
+The GIF in the README replays output saved from a real run, because the recording container has no cluster. `capture.sh` creates a kind cluster named `kube-diff-demo` with its own kubeconfig, installs the demo chart, changes it by hand with kubectl, runs kube-diff, and deletes the cluster on exit. When the output changes, regenerate both:
+
+```bash
+make build && examples/demo/capture.sh
+docker run --rm -v "$PWD:/vhs" ghcr.io/charmbracelet/vhs examples/demo/demo.tape
+```
 
 <br/>
 

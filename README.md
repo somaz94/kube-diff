@@ -7,6 +7,8 @@
 
 A CLI tool that compares local Kubernetes manifests (plain YAML, Helm charts, Kustomize overlays) against the actual state in your cluster, providing clear, colorized diffs with a summary report.
 
+![kube-diff compares a Helm chart with the live cluster: colored diffs for a ConfigMap and a Deployment, a NEW Service the cluster lost, and a summary](examples/demo/demo.gif)
+
 > For detailed documentation, see the [docs/](docs/) folder:
 >
 > [Usage](docs/USAGE.md) |
