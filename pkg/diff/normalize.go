@@ -30,6 +30,9 @@ func Normalize(obj *unstructured.Unstructured) *unstructured.Unstructured {
 		if annotations, ok := metadata["annotations"].(map[string]interface{}); ok {
 			delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
 			delete(annotations, "deployment.kubernetes.io/revision")
+			// helm install adds these to every object; helm template never renders them.
+			delete(annotations, "meta.helm.sh/release-name")
+			delete(annotations, "meta.helm.sh/release-namespace")
 			if len(annotations) == 0 {
 				delete(metadata, "annotations")
 			}

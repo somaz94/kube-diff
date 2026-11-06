@@ -64,8 +64,11 @@ type discoveredGV struct {
 	fetchedAt time.Time
 }
 
-// NewFetcher creates a new cluster Fetcher.
-func NewFetcher(kubeconfig, kubecontext string) (*Fetcher, error) {
+// ErrScopeUnknown is returned by Namespaced when the Fetcher was built without
+// discovery and so cannot tell a namespaced kind from a cluster-scoped one.
+var ErrScopeUnknown = errors.New("resource scope is unknown without discovery")
+
+func clientConfig(kubeconfig, kubecontext string) clientcmd.ClientConfig {
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
 	if kubeconfig != "" {
 		rules.ExplicitPath = kubeconfig
@@ -76,12 +79,27 @@ func NewFetcher(kubeconfig, kubecontext string) (*Fetcher, error) {
 		overrides.CurrentContext = kubecontext
 	}
 
-	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, overrides).ClientConfig()
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, overrides)
+}
+
+// NewFetcher creates a new cluster Fetcher.
+func NewFetcher(kubeconfig, kubecontext string) (*Fetcher, error) {
+	config, err := clientConfig(kubeconfig, kubecontext).ClientConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build kubeconfig: %w", err)
 	}
 
 	return NewFetcherFromConfig(config)
+}
+
+// ContextNamespace returns the namespace of the kubeconfig context NewFetcher
+// would use with the same arguments, or "default" when the context sets none.
+func ContextNamespace(kubeconfig, kubecontext string) (string, error) {
+	ns, _, err := clientConfig(kubeconfig, kubecontext).Namespace()
+	if err != nil {
+		return "", fmt.Errorf("failed to read namespace from kubeconfig: %w", err)
+	}
+	return ns, nil
 }
 
 // NewFetcherFromConfig creates a new cluster Fetcher from an existing
@@ -169,6 +187,17 @@ func (f *Fetcher) Get(ctx context.Context, apiVersion, kind, namespace, name str
 	}
 
 	return resource, nil
+}
+
+// Namespaced reports whether apiVersion/kind is a namespaced resource. A kind
+// the cluster does not serve returns a no-match error, as Get does, and a
+// Fetcher without discovery returns ErrScopeUnknown.
+func (f *Fetcher) Namespaced(ctx context.Context, apiVersion, kind string) (bool, error) {
+	if f.discovery == nil {
+		return false, ErrScopeUnknown
+	}
+	_, namespaced, err := f.resolve(ctx, apiVersion, kind)
+	return namespaced, err
 }
 
 // resolve returns the resource to request for apiVersion and kind, and whether

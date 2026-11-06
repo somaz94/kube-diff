@@ -26,7 +26,7 @@ func Execute() error {
 func init() {
 	rootCmd.PersistentFlags().StringP("kubeconfig", "", "", "path to kubeconfig file (default: $KUBECONFIG or ~/.kube/config)")
 	rootCmd.PersistentFlags().StringP("context", "", "", "kubernetes context to use")
-	rootCmd.PersistentFlags().StringP("namespace", "n", "", "filter by namespace")
+	rootCmd.PersistentFlags().StringP("namespace", "n", "", "namespace for manifests that set none (default: kubeconfig context, then \"default\"), and filter by namespace")
 	rootCmd.PersistentFlags().StringSliceP("kind", "k", nil, "filter by resource kind (e.g., Deployment,Service)")
 	rootCmd.PersistentFlags().StringSliceP("name", "N", nil, "filter by resource name (e.g., my-app,my-config)")
 	rootCmd.PersistentFlags().StringP("selector", "l", "", "filter by label selector (e.g., app=nginx,env=prod)")

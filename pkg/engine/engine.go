@@ -7,6 +7,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/somaz94/kube-diff/pkg/cluster"
@@ -53,6 +54,49 @@ func Compare(
 		results = append(results, result)
 	}
 	return results, nil
+}
+
+// ScopeResolver tells namespaced kinds from cluster-scoped ones.
+// *cluster.Fetcher implements it.
+type ScopeResolver interface {
+	Namespaced(ctx context.Context, apiVersion, kind string) (bool, error)
+}
+
+// DefaultNamespace puts namespace on every namespaced resource that sets none,
+// as kubectl apply would. Without it such a resource is looked up without a
+// namespace, comes back NotFound, and is reported as new; most Helm charts
+// leave metadata.namespace unset. Cluster-scoped kinds, kinds the cluster does
+// not serve, and kinds whose scope the resolver cannot tell are left as they
+// are. Changed objects are copies; resources is not modified.
+func DefaultNamespace(ctx context.Context, resolver ScopeResolver, resources []source.Resource, namespace string) ([]source.Resource, error) {
+	out := make([]source.Resource, len(resources))
+	copy(out, resources)
+	if namespace == "" {
+		return out, nil
+	}
+
+	for i, r := range out {
+		if r.Namespace != "" {
+			continue
+		}
+		namespaced, err := resolver.Namespaced(ctx, r.APIVersion, r.Kind)
+		if err != nil {
+			if isAbsent(err) || errors.Is(err, cluster.ErrScopeUnknown) {
+				continue
+			}
+			return nil, fmt.Errorf("resolve scope of %s %s %s: %w", r.APIVersion, r.Kind, r.Name, err)
+		}
+		if !namespaced {
+			continue
+		}
+		r.Namespace = namespace
+		if r.Object != nil {
+			r.Object = r.Object.DeepCopy()
+			r.Object.SetNamespace(namespace)
+		}
+		out[i] = r
+	}
+	return out, nil
 }
 
 // isAbsent reports whether a fetch error means the object does not exist. An

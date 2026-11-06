@@ -109,6 +109,29 @@ func TestNormalizeRemovesDeploymentRevisionAnnotation(t *testing.T) {
 	}
 }
 
+func TestNormalizeRemovesHelmReleaseAnnotations(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "ConfigMap",
+			"metadata": map[string]interface{}{
+				"name": "test",
+				"annotations": map[string]interface{}{
+					"meta.helm.sh/release-name":      "web",
+					"meta.helm.sh/release-namespace": "team-a",
+					"owner":                          "platform",
+				},
+			},
+		},
+	}
+
+	annotations := Normalize(obj).GetAnnotations()
+
+	if len(annotations) != 1 || annotations["owner"] != "platform" {
+		t.Errorf("annotations = %v, want only owner=platform", annotations)
+	}
+}
+
 func TestNormalizeNilInput(t *testing.T) {
 	result := Normalize(nil)
 	if result != nil {

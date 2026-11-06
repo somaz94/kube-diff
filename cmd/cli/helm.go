@@ -13,6 +13,7 @@ var helmCmd = &cobra.Command{
 		values, _ := cmd.Flags().GetStringSlice("values")
 		release, _ := cmd.Flags().GetString("release")
 		src := source.NewHelmSource(args[0], release, values)
+		src.Namespace = resolveNamespace(extractFlags(cmd))
 		return runDiff(cmd, src)
 	},
 }

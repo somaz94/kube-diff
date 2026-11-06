@@ -24,12 +24,12 @@ A CLI tool that compares local Kubernetes manifests (plain YAML, Helm charts, Ku
 
 | | `kubectl diff` | `kube-diff` |
 |---|---|---|
-| **Input** | YAML files only | Helm / Kustomize / plain YAML |
+| **Input** | YAML files, Kustomize (`-k`) | Helm / Kustomize / plain YAML |
 | **Output** | Raw unified diff | Per-resource colorized diff + summary |
 | **New resources** | Full content dump | **NEW** label |
-| **Deleted detection** | Not supported | Detects resources only in cluster |
+| **Deleted detection** | Not supported | Not yet: only resources in your manifests are compared |
 | **CI integration** | Exit code only | JSON / Markdown / Table report output |
-| **Filtering** | None | Namespace, kind, label selector filter |
+| **Filtering** | Label selector (`-l`) | Namespace, kind, name, label selector filter |
 | **Field ignore** | Not supported | `--ignore-field` to exclude specific paths |
 | **Context lines** | Fixed | Configurable `--context-lines` |
 | **Diff strategy** | Live only | `--diff-strategy live\|last-applied` |
@@ -156,14 +156,7 @@ Summary: 3 resources — 1 changed, 1 new, 1 unchanged
 
 ## Project Structure
 
-```
-cmd/                    # CLI entry point & Cobra commands
-internal/
-  source/               # Manifest loaders (file, helm, kustomize)
-  cluster/              # K8s dynamic client fetcher
-  diff/                 # Normalization & unified diff
-  report/               # Color/JSON/Markdown output
-```
+The CLI and its Cobra commands live in `cmd/`. The comparison pipeline lives in importable packages under `pkg/` (`source`, `cluster`, `diff`, `report`, and `engine`, which ties them together), so other tools can reuse it.
 
 <br/>
 

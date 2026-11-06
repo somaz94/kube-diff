@@ -21,7 +21,7 @@ Reference for all kube-diff configuration options.
 |------|-------|------|---------|-------------|
 | `--kubeconfig` | | string | `$KUBECONFIG` or `~/.kube/config` | Path to kubeconfig file |
 | `--context` | | string | Current context | Kubernetes context to use |
-| `--namespace` | `-n` | string | (all) | Filter by namespace |
+| `--namespace` | `-n` | string | kubeconfig context, then `default` | Namespace for manifests that set none, also passed to `helm template`; also filters by namespace |
 | `--kind` | `-k` | []string | (all) | Filter by resource kind (comma-separated) |
 | `--name` | `-N` | []string | (all) | Filter by resource name (comma-separated) |
 | `--selector` | `-l` | string | (all) | Filter by label selector (e.g., `app=nginx,env=prod`) |

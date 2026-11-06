@@ -39,7 +39,7 @@ These flags are available on all commands:
 |------|-------|---------|-------------|
 | `--kubeconfig` | | `$KUBECONFIG` or `~/.kube/config` | Path to kubeconfig file |
 | `--context` | | Current context | Kubernetes context to use |
-| `--namespace` | `-n` | All | Filter by namespace |
+| `--namespace` | `-n` | kubeconfig context, then `default` | Namespace for manifests that set none, also passed to `helm template`; also filters by namespace |
 | `--kind` | `-k` | All | Filter by resource kind (comma-separated) |
 | `--name` | `-N` | All | Filter by resource name (comma-separated) |
 | `--selector` | `-l` | All | Filter by label selector (e.g., `app=nginx,env=prod`) |

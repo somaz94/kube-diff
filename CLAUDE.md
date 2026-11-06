@@ -43,7 +43,8 @@ make vet             # go vet
 
 - **Source**: Loads manifests from file/helm/kustomize
 - **Fetcher**: Resolves each kind to its resource and scope through API discovery (cached per group version with a bounded age, refetched on a miss), then gets live resources with the client-go dynamic client (`ResourceFetcher` interface). `NewFetcherFromClient` has no discovery and falls back to guessing plurals
-- **Normalize**: Strips cluster-managed fields (managedFields, uid, status, etc.)
+- **DefaultNamespace** (`pkg/engine`): Gives namespaced resources without `metadata.namespace` the resolved namespace (`-n`, else kubeconfig context, else `default`), using the Fetcher's `Namespaced` scope lookup; cluster-scoped and unserved kinds are left alone. The same namespace is passed to `helm template --namespace`
+- **Normalize**: Strips cluster-managed fields (managedFields, uid, status, Helm's `meta.helm.sh/release-*` annotations, etc.)
 - **RemoveFields**: Removes user-specified field paths via `--ignore-field` (dot notation)
 - **Compare**: Generates unified diff per resource, accepts `CompareOptions` for context lines, ignore fields, and diff strategy
 - **ExtractLastApplied**: Parses `kubectl.kubernetes.io/last-applied-configuration` annotation for `--diff-strategy last-applied`
@@ -59,7 +60,7 @@ make vet             # go vet
 |------|-------|-------------|
 | `--kubeconfig` | | Path to kubeconfig file |
 | `--context` | | Kubernetes context to use |
-| `--namespace` | `-n` | Filter by namespace |
+| `--namespace` | `-n` | Namespace for manifests that set none (default: kubeconfig context, then `default`); also filters by namespace |
 | `--kind` | `-k` | Filter by resource kind |
 | `--name` | `-N` | Filter by resource name |
 | `--selector` | `-l` | Filter by label selector |

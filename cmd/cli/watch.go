@@ -144,7 +144,9 @@ func createSource(cmd *cobra.Command, sourceType, path string) source.Source {
 	case "helm":
 		values, _ := cmd.Flags().GetStringSlice("values")
 		release, _ := cmd.Flags().GetString("release")
-		return source.NewHelmSource(path, release, values)
+		src := source.NewHelmSource(path, release, values)
+		src.Namespace = resolveNamespace(extractFlags(cmd))
+		return src
 	case "kustomize":
 		return source.NewKustomizeSource(path)
 	default:

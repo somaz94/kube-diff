@@ -63,6 +63,18 @@ func extractFlags(cmd *cobra.Command) diffFlags {
 	}
 }
 
+// resolveNamespace returns the namespace for manifests that set none: the
+// --namespace flag, else the kubeconfig context's namespace, else "default".
+func resolveNamespace(f diffFlags) string {
+	if f.namespace != "" {
+		return f.namespace
+	}
+	if ns, err := cluster.ContextNamespace(f.kubeconfig, f.kubeContext); err == nil && ns != "" {
+		return ns
+	}
+	return "default"
+}
+
 // filterResources applies a predicate function to filter resources.
 func filterResources(resources []source.Resource, predicate func(source.Resource) bool) []source.Resource {
 	var filtered []source.Resource
@@ -174,6 +186,11 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 	fetcher, err := cluster.NewFetcher(f.kubeconfig, f.kubeContext)
 	if err != nil {
 		return fmt.Errorf("failed to create cluster client: %w", err)
+	}
+
+	resources, err = engine.DefaultNamespace(cmd.Context(), fetcher, resources, resolveNamespace(f))
+	if err != nil {
+		return err
 	}
 
 	err = executeDiff(cmd.Context(), fetcher, resources, f, os.Stdout)
