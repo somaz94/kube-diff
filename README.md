@@ -50,7 +50,8 @@ scoop bucket add somaz94 https://github.com/somaz94/scoop-bucket
 scoop install kube-diff
 
 # Krew (kubectl plugin)
-kubectl krew install diff2
+kubectl krew index add somaz94 https://github.com/somaz94/krew-index
+kubectl krew install somaz94/diff2
 
 # Binary (latest)
 curl -sL https://github.com/somaz94/kube-diff/releases/latest/download/kube-diff_linux_amd64.tar.gz | tar xz
