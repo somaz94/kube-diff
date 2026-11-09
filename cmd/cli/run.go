@@ -32,6 +32,8 @@ type diffFlags struct {
 	diffStrategy string
 	showSecrets  bool
 	deleted      bool
+	serverSide   bool
+	fieldManager string
 }
 
 // extractFlags reads all relevant flags from the cobra command.
@@ -50,6 +52,8 @@ func extractFlags(cmd *cobra.Command) diffFlags {
 	diffStrategy, _ := cmd.Flags().GetString("diff-strategy")
 	showSecrets, _ := cmd.Flags().GetBool("show-secrets")
 	deleted, _ := cmd.Flags().GetBool("deleted")
+	serverSide, _ := cmd.Flags().GetBool("server-side")
+	fieldManager, _ := cmd.Flags().GetString("field-manager")
 
 	return diffFlags{
 		kubeconfig:   kubeconfig,
@@ -66,6 +70,8 @@ func extractFlags(cmd *cobra.Command) diffFlags {
 		diffStrategy: diffStrategy,
 		showSecrets:  showSecrets,
 		deleted:      deleted,
+		serverSide:   serverSide,
+		fieldManager: fieldManager,
 	}
 }
 
@@ -147,6 +153,8 @@ func buildCompareOptions(f diffFlags) diff.CompareOptions {
 		IgnoreFields: f.ignoreFields,
 		Strategy:     strategy,
 		ShowSecrets:  f.showSecrets,
+		ServerSide:   f.serverSide,
+		FieldManager: f.fieldManager,
 	}
 }
 

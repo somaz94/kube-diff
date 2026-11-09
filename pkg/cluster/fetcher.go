@@ -221,6 +221,28 @@ func (f *Fetcher) List(ctx context.Context, apiVersion, kind, namespace, selecto
 	return list.Items, nil
 }
 
+// DryRunApplier returns an object as the API server would store it after a
+// server-side apply, with defaults and mutating webhooks applied, without
+// persisting it. *Fetcher implements it.
+type DryRunApplier interface {
+	DryRunApply(ctx context.Context, obj *unstructured.Unstructured, fieldManager string) (*unstructured.Unstructured, error)
+}
+
+// DryRunApply runs a forced server-side apply of obj with dryRun=All. Forcing
+// cannot change anything here, and it shows the manifest winning a field
+// ownership conflict instead of failing on it.
+func (f *Fetcher) DryRunApply(ctx context.Context, obj *unstructured.Unstructured, fieldManager string) (*unstructured.Unstructured, error) {
+	gvr, namespaced, err := f.resolve(ctx, obj.GetAPIVersion(), obj.GetKind())
+	if err != nil {
+		return nil, err
+	}
+	opts := metav1.ApplyOptions{DryRun: []string{metav1.DryRunAll}, FieldManager: fieldManager, Force: true}
+	if namespaced && obj.GetNamespace() != "" {
+		return f.client.Resource(gvr).Namespace(obj.GetNamespace()).Apply(ctx, obj.GetName(), obj, opts)
+	}
+	return f.client.Resource(gvr).Apply(ctx, obj.GetName(), obj, opts)
+}
+
 // Namespaced reports whether apiVersion/kind is a namespaced resource. A kind
 // the cluster does not serve returns a no-match error, as Get does, and a
 // Fetcher without discovery returns ErrScopeUnknown.

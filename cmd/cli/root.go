@@ -35,6 +35,8 @@ func init() {
 	rootCmd.PersistentFlags().StringSlice("ignore-field", nil, "field paths to ignore in diff (e.g., metadata.annotations.some-key)")
 	rootCmd.PersistentFlags().IntP("context-lines", "C", 3, "number of context lines in diff output")
 	rootCmd.PersistentFlags().Bool("exit-code", false, "exit 0 even when changes are detected (disable exit 1)")
+	rootCmd.PersistentFlags().Bool("server-side", false, "diff a server-side apply dry run of each manifest, so defaults and mutating webhooks are included")
+	rootCmd.PersistentFlags().String("field-manager", "kube-diff", "field manager for --server-side; use the one you apply with, so fields removed from a manifest show as removed")
 	rootCmd.PersistentFlags().Bool("deleted", false, "also report cluster objects matching --selector that the manifests no longer contain")
 	rootCmd.PersistentFlags().Bool("show-secrets", false, "print Secret values in the diff (redacted by default)")
 	rootCmd.PersistentFlags().String("diff-strategy", "live", "comparison strategy: live (cluster state) or last-applied (last-applied-configuration annotation)")

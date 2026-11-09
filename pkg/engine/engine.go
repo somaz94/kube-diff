@@ -33,28 +33,50 @@ func Compare(
 	resources []source.Resource,
 	opts diff.CompareOptions,
 ) ([]*diff.Result, error) {
+	var applier cluster.DryRunApplier
+	if opts.ServerSide {
+		if opts.Strategy == diff.StrategyLastApplied {
+			return nil, errors.New("server-side comparison cannot be combined with the last-applied strategy")
+		}
+		var ok bool
+		if applier, ok = fetcher.(cluster.DryRunApplier); !ok {
+			return nil, errors.New("server-side comparison needs a fetcher that can dry-run an apply")
+		}
+	}
+
 	results := make([]*diff.Result, 0, len(resources))
 	for _, r := range resources {
 		clusterObj, err := fetcher.Get(ctx, r.APIVersion, r.Kind, r.Namespace, r.Name)
 		if err != nil {
 			if !isAbsent(err) {
-				id := r.Name
-				if r.Namespace != "" {
-					id = r.Namespace + "/" + r.Name
-				}
-				return nil, fmt.Errorf("get %s %s %s: %w", r.APIVersion, r.Kind, id, err)
+				return nil, fmt.Errorf("get %s %s %s: %w", r.APIVersion, r.Kind, resourceID(r), err)
 			}
 			// Drop anything returned alongside the error; nil makes diff.Compare report StatusNew.
 			clusterObj = nil
 		}
 
-		result, compareErr := diff.Compare(r.Object, clusterObj, opts)
+		local := r.Object
+		if applier != nil && clusterObj != nil {
+			local, err = applier.DryRunApply(ctx, r.Object, opts.FieldManager)
+			if err != nil {
+				return nil, fmt.Errorf("dry-run apply %s %s %s: %w", r.APIVersion, r.Kind, resourceID(r), err)
+			}
+		}
+
+		result, compareErr := diff.Compare(local, clusterObj, opts)
 		if compareErr != nil {
 			return nil, compareErr
 		}
 		results = append(results, result)
 	}
 	return results, nil
+}
+
+func resourceID(r source.Resource) string {
+	if r.Namespace != "" {
+		return r.Namespace + "/" + r.Name
+	}
+	return r.Name
 }
 
 // FindDeleted reports the cluster objects that match selector and share an

@@ -148,6 +148,37 @@ echo "$deleted_out" | jq -e '[.resources[] | select(.status == "deleted") | .nam
 kubectl -n "$NS" delete deployment demo-app-old >/dev/null
 echo ""
 
+info "Server-side dry run: --server-side folds in what the API server defaults"
+ss_dir=$(mktemp -d)
+cat > "$ss_dir/cronjob.yaml" <<YAML
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: demo-cron
+  namespace: $NS
+spec:
+  schedule: "0 0 1 1 *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: noop
+              image: busybox:1.36
+              command: ["true"]
+YAML
+kubectl apply -f "$ss_dir/cronjob.yaml" >/dev/null
+kube-diff file "$ss_dir/" -n "$NS" -s || true
+ss_status() { kube-diff file "$ss_dir/" -n "$NS" --server-side -o json | jq -r '.resources[0].status'; }
+# Asserted: the applied manifest matches once defaults are included, and a real edit still shows.
+[ "$(ss_status || true)" = "unchanged" ] || { echo "expected the applied CronJob to be unchanged with --server-side"; exit 1; }
+sed -i.bak 's/"0 0 1 1 \*"/"0 0 2 1 *"/' "$ss_dir/cronjob.yaml" && rm -f "$ss_dir/cronjob.yaml.bak"
+[ "$(ss_status || true)" = "changed" ] || { echo "expected the edited schedule to show as changed with --server-side"; exit 1; }
+kubectl delete -f "$ss_dir/cronjob.yaml" >/dev/null
+rm -rf "$ss_dir"
+echo ""
+
 # ─── Done ────────────────────────────────────────────────────────
 step "Demo complete!"
 echo "To clean up:  make demo-clean"

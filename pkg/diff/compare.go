@@ -35,6 +35,10 @@ type CompareOptions struct {
 	IgnoreFields []string     // field paths to ignore (e.g., "metadata.annotations.some-key")
 	Strategy     DiffStrategy // comparison strategy: "live" or "last-applied"
 	ShowSecrets  bool         // print Secret values in the diff instead of redacting them
+	// ServerSide makes engine.Compare diff a server-side apply dry run of the
+	// manifest, as FieldManager, instead of the manifest itself.
+	ServerSide   bool
+	FieldManager string
 }
 
 // DefaultCompareOptions returns the default comparison options.

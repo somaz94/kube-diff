@@ -273,6 +273,8 @@ func TestRootCommandNewFlags(t *testing.T) {
 		{"diff-strategy", "diff-strategy", "live"},
 		{"show-secrets", "show-secrets", "false"},
 		{"deleted", "deleted", "false"},
+		{"server-side", "server-side", "false"},
+		{"field-manager", "field-manager", "kube-diff"},
 	}
 
 	for _, tt := range tests {
@@ -696,6 +698,16 @@ func TestBuildCompareOptions(t *testing.T) {
 			expected: diff.CompareOptions{
 				ContextLines: 3,
 				Strategy:     diff.StrategyLive,
+			},
+		},
+		{
+			name:  "server side",
+			flags: diffFlags{contextLines: 3, diffStrategy: "live", serverSide: true, fieldManager: "helm"},
+			expected: diff.CompareOptions{
+				ContextLines: 3,
+				Strategy:     diff.StrategyLive,
+				ServerSide:   true,
+				FieldManager: "helm",
 			},
 		},
 		{
