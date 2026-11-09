@@ -16,6 +16,7 @@ Complete guide for using kube-diff CLI.
 - [Diff Strategy](#diff-strategy)
 - [Secrets](#secrets)
 - [Deleted Resources](#deleted-resources)
+- [Server-Side Dry Run](#server-side-dry-run)
 - [Watch Mode](#watch-mode)
 - [Exit Codes](#exit-codes)
 - [CI/CD Integration](#cicd-integration)
@@ -53,6 +54,8 @@ These flags are available on all commands:
 | `--diff-strategy` | | `live` | Comparison strategy: `live` or `last-applied` |
 | `--show-secrets` | | `false` | Print Secret values in the diff instead of redacting them |
 | `--deleted` | | `false` | Also report objects matching `--selector` that the manifests no longer contain |
+| `--server-side` | | `false` | Diff a server-side apply dry run of each manifest instead of the manifest itself |
+| `--field-manager` | | `kube-diff` | Field manager for `--server-side` |
 
 <br/>
 
@@ -392,6 +395,23 @@ kube-diff helm ./my-chart/ -r my-release -l app.kubernetes.io/instance=my-releas
 ```
 
 Only the kinds and namespaces that appear in the manifests are searched, so a kind removed from the manifests entirely is not reported. Objects with a controlling owner, such as a Deployment's ReplicaSets, are skipped because they are generated rather than applied. `--deleted` cannot be combined with `--name`, which would leave the other manifests out of the comparison and report them as deleted.
+
+<br/>
+
+## Server-Side Dry Run
+
+By default kube-diff compares your manifest with the live object and strips the defaults it knows about. Anything else the API server adds, from defaults of kinds it does not normalize to fields a mutating webhook injects, shows up as a change. `--server-side` sends each manifest as a server-side apply with `dryRun=All` and compares what the server returns instead, so those additions are on both sides. Nothing is persisted.
+
+```bash
+kube-diff file ./manifests/ --server-side
+```
+
+What it costs and what it does not show:
+
+- It needs `patch` rights on every compared kind, the same as a real apply, and it fails on a resource whose admission webhooks do not support dry run.
+- A field you delete from a manifest shows as removed only when the object was last server-side applied by the same field manager. Pass that manager with `--field-manager` (`kubectl apply --server-side` uses `kubectl`). Objects written with a client-side `kubectl apply` or by Helm keep such a field in the dry run, so use the default comparison to see removals.
+- The apply is forced, so a field owned by another manager shows the value from your manifest rather than failing on the conflict.
+- It cannot be combined with `--diff-strategy last-applied`.
 
 <br/>
 

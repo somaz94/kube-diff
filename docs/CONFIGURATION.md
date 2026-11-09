@@ -33,6 +33,8 @@ Reference for all kube-diff configuration options.
 | `--diff-strategy` | | string | `live` | Comparison strategy: `live` (cluster state) or `last-applied` (annotation) |
 | `--show-secrets` | | bool | `false` | Print Secret values in the diff instead of redacting them |
 | `--deleted` | | bool | `false` | Also report objects matching `--selector` that the manifests no longer contain |
+| `--server-side` | | bool | `false` | Diff a server-side apply dry run of each manifest instead of the manifest itself |
+| `--field-manager` | | string | `kube-diff` | Field manager for `--server-side` |
 
 ### Helm-specific Flags
 

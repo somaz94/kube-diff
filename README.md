@@ -32,7 +32,7 @@ A CLI tool that compares local Kubernetes manifests (plain YAML, Helm charts, Ku
 | **Filtering** | Label selector (`-l`) | Namespace, kind, name, label selector filter |
 | **Field ignore** | Not supported | `--ignore-field` to exclude specific paths |
 | **Context lines** | Fixed | Configurable `--context-lines` |
-| **Diff strategy** | Live only | `--diff-strategy live\|last-applied` |
+| **Diff strategy** | Live, or server-side with `--server-side` | `--diff-strategy live\|last-applied`, or `--server-side` |
 | **Watch mode** | Not supported | `kube-diff watch` for auto re-run on file change |
 
 <br/>
@@ -126,6 +126,9 @@ kube-diff file ./manifests/ --show-secrets
 
 # Also report objects labeled app=web that the manifests no longer contain
 kube-diff file ./manifests/ -l app=web --deleted
+
+# Compare a server-side apply dry run, so server defaults and webhook mutations do not show as drift
+kube-diff file ./manifests/ --server-side
 
 # Watch mode — auto re-run on file changes
 kube-diff watch file ./manifests/
