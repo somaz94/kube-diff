@@ -161,7 +161,7 @@ Current coverage: **86.4%**
 
 ## Demo
 
-The GIF in the README replays output saved from a real run, because the recording container has no cluster. `capture.sh` creates a kind cluster named `kube-diff-demo` with its own kubeconfig, installs the demo chart, changes it by hand with kubectl, runs kube-diff, and deletes the cluster on exit. When the output changes, regenerate both:
+The GIF in the README replays output saved from a real run, because the recording container has no cluster. `capture.sh` creates a kind cluster named `kube-diff-demo` with its own kubeconfig, installs the demo chart, changes it by hand with kubectl, adds a Deployment the chart does not render, runs kube-diff with and without `--deleted`, and deletes the cluster on exit. When the output changes, regenerate both:
 
 ```bash
 make build && examples/demo/capture.sh

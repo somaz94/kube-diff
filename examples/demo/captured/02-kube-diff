@@ -1,0 +1,6 @@
+STATUS     KIND                 NAME                           NAMESPACE      
+------     ----                 ----                           ---------      
+CHANGED    Deployment           demo-app                       kube-diff-demo 
+DELETED    Deployment           demo-worker                    kube-diff-demo 
+
+Total: 2 | Changed: 1 | New: 0 | Deleted: 1 | Unchanged: 0

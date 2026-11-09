@@ -21,3 +21,12 @@ Show
 Type "kube-diff helm examples/helm/demo-chart/ -r demo -n kube-diff-demo"
 Enter
 Sleep 6s
+
+Hide
+Type "clear"
+Enter
+Sleep 300ms
+Show
+Type "kube-diff helm examples/helm/demo-chart/ -r demo -n kube-diff-demo -l app=demo --deleted -o table"
+Enter
+Sleep 5s

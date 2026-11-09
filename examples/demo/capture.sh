@@ -37,9 +37,13 @@ helm template demo examples/helm/demo-chart/ | kubectl apply -f -
 kubectl scale deploy/demo-app --replicas=5 -n "${NS}"
 kubectl patch configmap demo-config -n "${NS}" --type merge -p '{"data":{"DEBUG_MODE":"true"}}'
 kubectl delete service demo-svc -n "${NS}"
+# A Deployment the chart no longer renders, still labeled as the release's.
+kubectl create deployment demo-worker --image=nginx:1.25 -n "${NS}"
+kubectl label deployment demo-worker app=demo --overwrite -n "${NS}"
 
 rm -rf "${OUT}"
 mkdir -p "${OUT}"
 ./kube-diff helm examples/helm/demo-chart/ -r demo -n "${NS}" > "${OUT}/01-kube-diff" 2>&1 || true
+./kube-diff helm examples/helm/demo-chart/ -r demo -n "${NS}" -l app=demo --deleted -o table > "${OUT}/02-kube-diff" 2>&1 || true
 
 echo "captured into ${OUT}"
