@@ -14,6 +14,7 @@ Complete guide for using kube-diff CLI.
 - [Output Formats](#output-formats)
 - [Filtering](#filtering)
 - [Diff Strategy](#diff-strategy)
+- [Secrets](#secrets)
 - [Watch Mode](#watch-mode)
 - [Exit Codes](#exit-codes)
 - [CI/CD Integration](#cicd-integration)
@@ -49,6 +50,7 @@ These flags are available on all commands:
 | `--context-lines` | `-C` | `3` | Number of context lines in unified diff output |
 | `--exit-code` | | `false` | Always exit 0 even when changes are detected |
 | `--diff-strategy` | | `live` | Comparison strategy: `live` or `last-applied` |
+| `--show-secrets` | | `false` | Print Secret values in the diff instead of redacting them |
 
 <br/>
 
@@ -355,6 +357,23 @@ kube-diff file ./manifests/ --diff-strategy last-applied
 ```
 
 > **Note**: If a resource doesn't have the `last-applied-configuration` annotation (e.g., created with `kubectl create` instead of `kubectl apply`), kube-diff falls back to comparing against the live state.
+
+<br/>
+
+## Secrets
+
+Secret values never reach the output by default, in any format, so a report posted to a pull request does not carry them. Each `data` value is shown as `<redacted>`, and a key whose local value differs from the cluster's is shown as `<redacted, changed>` on the local side, so the diff still names what changed. No hash of the value is printed, since a short password falls to a dictionary attack on its digest.
+
+```diff
+ data:
+-    password: <redacted>
++    password: <redacted, changed>
+     user: <redacted>
+```
+
+A manifest's `stringData` is folded into `data` before the comparison, the way the API server stores it, so a Secret written with `stringData` compares equal to the stored one when the values match.
+
+Pass `--show-secrets` to print the values, as with `kubectl diff --show-secrets`.
 
 <br/>
 

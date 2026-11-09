@@ -121,6 +121,9 @@ kube-diff file ./manifests/ --exit-code
 # Compare against last-applied-configuration instead of live state
 kube-diff file ./manifests/ --diff-strategy last-applied
 
+# Secret values are redacted by default; print them only on a trusted terminal
+kube-diff file ./manifests/ --show-secrets
+
 # Watch mode — auto re-run on file changes
 kube-diff watch file ./manifests/
 kube-diff watch helm ./my-chart/ -f values.yaml
