@@ -32,6 +32,7 @@ Reference for all kube-diff configuration options.
 | `--exit-code` | | bool | `false` | Always exit 0 even when changes are detected |
 | `--diff-strategy` | | string | `live` | Comparison strategy: `live` (cluster state) or `last-applied` (annotation) |
 | `--show-secrets` | | bool | `false` | Print Secret values in the diff instead of redacting them |
+| `--deleted` | | bool | `false` | Also report objects matching `--selector` that the manifests no longer contain |
 
 ### Helm-specific Flags
 

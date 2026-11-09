@@ -27,7 +27,7 @@ A CLI tool that compares local Kubernetes manifests (plain YAML, Helm charts, Ku
 | **Input** | YAML files, Kustomize (`-k`) | Helm / Kustomize / plain YAML |
 | **Output** | Raw unified diff | Per-resource colorized diff + summary |
 | **New resources** | Full content dump | **NEW** label |
-| **Deleted detection** | Not supported | Not yet: only resources in your manifests are compared |
+| **Deleted detection** | `--prune` with `-l` | `--deleted` with `-l`, reported as **DELETED** in every output format |
 | **CI integration** | Exit code only | JSON / Markdown / Table report output |
 | **Filtering** | Label selector (`-l`) | Namespace, kind, name, label selector filter |
 | **Field ignore** | Not supported | `--ignore-field` to exclude specific paths |
@@ -123,6 +123,9 @@ kube-diff file ./manifests/ --diff-strategy last-applied
 
 # Secret values are redacted by default; print them only on a trusted terminal
 kube-diff file ./manifests/ --show-secrets
+
+# Also report objects labeled app=web that the manifests no longer contain
+kube-diff file ./manifests/ -l app=web --deleted
 
 # Watch mode — auto re-run on file changes
 kube-diff watch file ./manifests/

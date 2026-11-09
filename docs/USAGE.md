@@ -15,6 +15,7 @@ Complete guide for using kube-diff CLI.
 - [Filtering](#filtering)
 - [Diff Strategy](#diff-strategy)
 - [Secrets](#secrets)
+- [Deleted Resources](#deleted-resources)
 - [Watch Mode](#watch-mode)
 - [Exit Codes](#exit-codes)
 - [CI/CD Integration](#cicd-integration)
@@ -51,6 +52,7 @@ These flags are available on all commands:
 | `--exit-code` | | `false` | Always exit 0 even when changes are detected |
 | `--diff-strategy` | | `live` | Comparison strategy: `live` or `last-applied` |
 | `--show-secrets` | | `false` | Print Secret values in the diff instead of redacting them |
+| `--deleted` | | `false` | Also report objects matching `--selector` that the manifests no longer contain |
 
 <br/>
 
@@ -374,6 +376,22 @@ Secret values never reach the output by default, in any format, so a report post
 A manifest's `stringData` is folded into `data` before the comparison, the way the API server stores it, so a Secret written with `stringData` compares equal to the stored one when the values match.
 
 Pass `--show-secrets` to print the values, as with `kubectl diff --show-secrets`.
+
+<br/>
+
+## Deleted Resources
+
+`--deleted` also reports cluster objects that the manifests no longer contain, the ones an apply that prunes by label would remove. It needs `--selector` (`-l`): the selector is what says which cluster objects these manifests own, and without it every unrelated object of the same kind would count.
+
+```bash
+# Plain manifests or Kustomize: the label your manifests put on everything
+kube-diff file ./manifests/ -l app=web --deleted
+
+# Helm: the release label the chart sets
+kube-diff helm ./my-chart/ -r my-release -l app.kubernetes.io/instance=my-release --deleted
+```
+
+Only the kinds and namespaces that appear in the manifests are searched, so a kind removed from the manifests entirely is not reported. Objects with a controlling owner, such as a Deployment's ReplicaSets, are skipped because they are generated rather than applied. `--deleted` cannot be combined with `--name`, which would leave the other manifests out of the comparison and report them as deleted.
 
 <br/>
 
