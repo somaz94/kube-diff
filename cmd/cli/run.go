@@ -30,6 +30,7 @@ type diffFlags struct {
 	contextLines int
 	noExitCode   bool
 	diffStrategy string
+	showSecrets  bool
 }
 
 // extractFlags reads all relevant flags from the cobra command.
@@ -46,6 +47,7 @@ func extractFlags(cmd *cobra.Command) diffFlags {
 	contextLines, _ := cmd.Flags().GetInt("context-lines")
 	noExitCode, _ := cmd.Flags().GetBool("exit-code")
 	diffStrategy, _ := cmd.Flags().GetString("diff-strategy")
+	showSecrets, _ := cmd.Flags().GetBool("show-secrets")
 
 	return diffFlags{
 		kubeconfig:   kubeconfig,
@@ -60,6 +62,7 @@ func extractFlags(cmd *cobra.Command) diffFlags {
 		contextLines: contextLines,
 		noExitCode:   noExitCode,
 		diffStrategy: diffStrategy,
+		showSecrets:  showSecrets,
 	}
 }
 
@@ -140,6 +143,7 @@ func buildCompareOptions(f diffFlags) diff.CompareOptions {
 		ContextLines: f.contextLines,
 		IgnoreFields: f.ignoreFields,
 		Strategy:     strategy,
+		ShowSecrets:  f.showSecrets,
 	}
 }
 

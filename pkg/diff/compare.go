@@ -34,6 +34,7 @@ type CompareOptions struct {
 	ContextLines int          // number of context lines in diff output (default: 3)
 	IgnoreFields []string     // field paths to ignore (e.g., "metadata.annotations.some-key")
 	Strategy     DiffStrategy // comparison strategy: "live" or "last-applied"
+	ShowSecrets  bool         // print Secret values in the diff instead of redacting them
 }
 
 // DefaultCompareOptions returns the default comparison options.
@@ -102,6 +103,14 @@ func Compare(local, cluster *unstructured.Unstructured, opts ...CompareOptions) 
 	if len(opt.IgnoreFields) > 0 {
 		RemoveFields(normalizedLocal, opt.IgnoreFields)
 		RemoveFields(normalizedCluster, opt.IgnoreFields)
+	}
+
+	if isSecret(normalizedLocal) {
+		foldStringData(normalizedLocal)
+		foldStringData(normalizedCluster)
+		if !opt.ShowSecrets {
+			redactSecretData(normalizedLocal, normalizedCluster)
+		}
 	}
 
 	localYAML, err := toYAML(normalizedLocal)

@@ -271,6 +271,7 @@ func TestRootCommandNewFlags(t *testing.T) {
 		{"context-lines", "context-lines", "3"},
 		{"exit-code", "exit-code", "false"},
 		{"diff-strategy", "diff-strategy", "live"},
+		{"show-secrets", "show-secrets", "false"},
 	}
 
 	for _, tt := range tests {
@@ -694,6 +695,15 @@ func TestBuildCompareOptions(t *testing.T) {
 			expected: diff.CompareOptions{
 				ContextLines: 3,
 				Strategy:     diff.StrategyLive,
+			},
+		},
+		{
+			name:  "show secrets",
+			flags: diffFlags{contextLines: 3, diffStrategy: "live", showSecrets: true},
+			expected: diff.CompareOptions{
+				ContextLines: 3,
+				Strategy:     diff.StrategyLive,
+				ShowSecrets:  true,
 			},
 		},
 	}
