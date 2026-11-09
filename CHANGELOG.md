@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.7.0](https://github.com/somaz94/kube-diff/compare/v0.6.2...v0.7.0) (2026-11-09)
+
+### Features
+
+- redact Secret values in diffs and fold stringData into data ([60e93b8](https://github.com/somaz94/kube-diff/commit/60e93b855a2e85f1205072ecba3c34d4977c5817))
+
+### Documentation
+
+- document Secret redaction and --show-secrets ([0a8ac58](https://github.com/somaz94/kube-diff/commit/0a8ac585ebbfa86062d1757720cb7f4b4aab1a25))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.6.2](https://github.com/somaz94/kube-diff/compare/v0.6.1...v0.6.2) (2026-11-06)
 
 ### Bug Fixes
