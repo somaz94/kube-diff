@@ -272,6 +272,7 @@ func TestRootCommandNewFlags(t *testing.T) {
 		{"exit-code", "exit-code", "false"},
 		{"diff-strategy", "diff-strategy", "live"},
 		{"show-secrets", "show-secrets", "false"},
+		{"deleted", "deleted", "false"},
 	}
 
 	for _, tt := range tests {
@@ -1071,5 +1072,77 @@ func TestExecuteDiffReturnsFetchError(t *testing.T) {
 	}
 	if buf.Len() != 0 {
 		t.Errorf("expected no report on fetch error, got %q", buf.String())
+	}
+}
+
+// listingFetcher adds List to mockFetcher, returning items for one namespace.
+type listingFetcher struct {
+	mockFetcher
+	items []unstructured.Unstructured
+}
+
+func (l *listingFetcher) List(_ context.Context, _, _, _, _ string) ([]unstructured.Unstructured, error) {
+	return l.items, nil
+}
+
+func TestValidateDeleted(t *testing.T) {
+	tests := []struct {
+		name    string
+		flags   diffFlags
+		wantErr string
+	}{
+		{"off", diffFlags{}, ""},
+		{"with selector", diffFlags{deleted: true, selector: "app=web"}, ""},
+		{"no selector", diffFlags{deleted: true}, "--selector"},
+		{"with name", diffFlags{deleted: true, selector: "app=web", names: []string{"a"}}, "--name"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateDeleted(tt.flags)
+			if tt.wantErr == "" && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tt.wantErr != "" && (err == nil || !strings.Contains(err.Error(), tt.wantErr)) {
+				t.Fatalf("expected error mentioning %q, got %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestExecuteDiffReportsDeleted(t *testing.T) {
+	obj := testutil.NewTestObj("v1", "ConfigMap", "cm", "default", map[string]interface{}{"data": map[string]interface{}{"k": "v"}})
+	fetcher := &listingFetcher{
+		mockFetcher: mockFetcher{resources: map[string]*unstructured.Unstructured{"v1/ConfigMap/default/cm": obj}},
+		items:       []unstructured.Unstructured{*obj, *testutil.NewTestObj("v1", "ConfigMap", "old", "default", nil)},
+	}
+	resources := []source.Resource{{APIVersion: "v1", Kind: "ConfigMap", Name: "cm", Namespace: "default", Object: obj}}
+
+	var buf bytes.Buffer
+	err := executeDiff(context.Background(), fetcher, resources, diffFlags{output: "plain", contextLines: 3, deleted: true, selector: "app=web"}, &buf)
+	if !errors.Is(err, ErrChangesDetected) {
+		t.Fatalf("expected ErrChangesDetected, got %v", err)
+	}
+	if !strings.Contains(buf.String(), "old") || !strings.Contains(strings.ToLower(buf.String()), "deleted") {
+		t.Errorf("expected old reported as deleted, got:\n%s", buf.String())
+	}
+}
+
+func TestExecuteDiffDeletedNeedsLister(t *testing.T) {
+	obj := testutil.NewTestObj("v1", "ConfigMap", "cm", "default", nil)
+	fetcher := &mockFetcher{resources: map[string]*unstructured.Unstructured{"v1/ConfigMap/default/cm": obj}}
+	resources := []source.Resource{{APIVersion: "v1", Kind: "ConfigMap", Name: "cm", Namespace: "default", Object: obj}}
+
+	var buf bytes.Buffer
+	err := executeDiff(context.Background(), fetcher, resources, diffFlags{output: "plain", deleted: true, selector: "a=b"}, &buf)
+	if err == nil || !strings.Contains(err.Error(), "list") {
+		t.Fatalf("expected an error about listing, got %v", err)
+	}
+}
+
+func TestExecuteDiffDeletedValidates(t *testing.T) {
+	var buf bytes.Buffer
+	err := executeDiff(context.Background(), &mockFetcher{}, nil, diffFlags{deleted: true}, &buf)
+	if err == nil || !strings.Contains(err.Error(), "--selector") {
+		t.Fatalf("expected the selector requirement, got %v", err)
 	}
 }

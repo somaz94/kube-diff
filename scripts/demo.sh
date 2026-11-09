@@ -18,6 +18,7 @@ warn()  { echo -e "${YELLOW}⚠ $*${RESET}"; }
 # ─── Prerequisites ───────────────────────────────────────────────
 command -v kube-diff >/dev/null 2>&1 || { echo "kube-diff not found. Install: brew install somaz94/tap/kube-diff"; exit 1; }
 command -v kubectl >/dev/null 2>&1   || { echo "kubectl not found"; exit 1; }
+command -v jq >/dev/null 2>&1        || { echo "jq not found"; exit 1; }
 
 # ─── Phase 1: Setup ─────────────────────────────────────────────
 step "Phase 1: Deploy demo resources to cluster"
@@ -134,6 +135,17 @@ echo ""
 
 info "Diff strategy: --diff-strategy last-applied"
 kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" --diff-strategy last-applied || true
+echo ""
+
+info "Deleted detection: --deleted with a selector"
+kubectl -n "$NS" create deployment demo-app-old --image=nginx:1.25 >/dev/null
+kubectl -n "$NS" label deployment demo-app-old app=demo-app --overwrite >/dev/null
+deleted_out=$(kube-diff file "$EXAMPLES_DIR/file/" -n "$NS" -l app=demo-app --deleted -o json || true)
+echo "$deleted_out"
+# Asserted, not just shown: only the stray Deployment is deleted, and its ReplicaSet is not listed.
+echo "$deleted_out" | jq -e '[.resources[] | select(.status == "deleted") | .name] == ["demo-app-old"]' >/dev/null \
+  || { echo "expected only demo-app-old to be reported as deleted"; exit 1; }
+kubectl -n "$NS" delete deployment demo-app-old >/dev/null
 echo ""
 
 # ─── Done ────────────────────────────────────────────────────────

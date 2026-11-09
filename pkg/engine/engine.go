@@ -15,6 +15,7 @@ import (
 	"github.com/somaz94/kube-diff/pkg/source"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Compare compares each already-loaded local resource against the live cluster
@@ -52,6 +53,55 @@ func Compare(
 			return nil, compareErr
 		}
 		results = append(results, result)
+	}
+	return results, nil
+}
+
+// FindDeleted reports the cluster objects that match selector and share an
+// apiVersion, kind and namespace with resources but are missing from them:
+// what an apply that prunes by selector would delete. Objects with a
+// controller owner are skipped, since they are generated rather than applied.
+// A kind the cluster does not serve has nothing to delete.
+func FindDeleted(
+	ctx context.Context,
+	lister cluster.ResourceLister,
+	resources []source.Resource,
+	selector string,
+) ([]*diff.Result, error) {
+	type scope struct{ apiVersion, kind, namespace string }
+	local := make(map[scope]map[string]bool)
+	var order []scope
+	for _, r := range resources {
+		s := scope{r.APIVersion, r.Kind, r.Namespace}
+		if local[s] == nil {
+			local[s] = make(map[string]bool)
+			order = append(order, s)
+		}
+		local[s][r.Name] = true
+	}
+
+	var results []*diff.Result
+	for _, s := range order {
+		items, err := lister.List(ctx, s.apiVersion, s.kind, s.namespace, selector)
+		if err != nil {
+			if isAbsent(err) {
+				continue
+			}
+			return nil, fmt.Errorf("list %s %s in namespace %q: %w", s.apiVersion, s.kind, s.namespace, err)
+		}
+		for i := range items {
+			obj := &items[i]
+			if local[s][obj.GetName()] || metav1.GetControllerOf(obj) != nil {
+				continue
+			}
+			results = append(results, &diff.Result{
+				APIVersion: s.apiVersion,
+				Kind:       s.kind,
+				Name:       obj.GetName(),
+				Namespace:  obj.GetNamespace(),
+				Status:     diff.StatusDeleted,
+			})
+		}
 	}
 	return results, nil
 }

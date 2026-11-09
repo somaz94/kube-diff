@@ -31,6 +31,7 @@ type diffFlags struct {
 	noExitCode   bool
 	diffStrategy string
 	showSecrets  bool
+	deleted      bool
 }
 
 // extractFlags reads all relevant flags from the cobra command.
@@ -48,6 +49,7 @@ func extractFlags(cmd *cobra.Command) diffFlags {
 	noExitCode, _ := cmd.Flags().GetBool("exit-code")
 	diffStrategy, _ := cmd.Flags().GetString("diff-strategy")
 	showSecrets, _ := cmd.Flags().GetBool("show-secrets")
+	deleted, _ := cmd.Flags().GetBool("deleted")
 
 	return diffFlags{
 		kubeconfig:   kubeconfig,
@@ -63,6 +65,7 @@ func extractFlags(cmd *cobra.Command) diffFlags {
 		noExitCode:   noExitCode,
 		diffStrategy: diffStrategy,
 		showSecrets:  showSecrets,
+		deleted:      deleted,
 	}
 }
 
@@ -207,10 +210,25 @@ func runDiff(cmd *cobra.Command, src source.Source) error {
 // executeDiff runs comparison, prints report, and returns ErrChangesDetected
 // when differences are found and noExitCode is not set.
 func executeDiff(ctx context.Context, fetcher cluster.ResourceFetcher, resources []source.Resource, f diffFlags, w io.Writer) error {
+	if err := validateDeleted(f); err != nil {
+		return err
+	}
 	opts := buildCompareOptions(f)
 	results, err := engine.Compare(ctx, fetcher, resources, opts)
 	if err != nil {
 		return err
+	}
+
+	if f.deleted {
+		lister, ok := fetcher.(cluster.ResourceLister)
+		if !ok {
+			return errors.New("--deleted needs a fetcher that can list cluster objects")
+		}
+		deleted, err := engine.FindDeleted(ctx, lister, resources, f.selector)
+		if err != nil {
+			return err
+		}
+		results = append(results, deleted...)
 	}
 
 	summary := report.NewSummary(results)
@@ -220,6 +238,22 @@ func executeDiff(ctx context.Context, fetcher cluster.ResourceFetcher, resources
 
 	if summary.HasChanges() && !f.noExitCode {
 		return ErrChangesDetected
+	}
+	return nil
+}
+
+// validateDeleted rejects --deleted where "missing from the manifests" would
+// not mean deleted: without a selector every unrelated object of the kind
+// counts, and --name drops the other manifests from the comparison.
+func validateDeleted(f diffFlags) error {
+	if !f.deleted {
+		return nil
+	}
+	if f.selector == "" {
+		return errors.New("--deleted needs --selector (-l) to tell which cluster objects these manifests own")
+	}
+	if len(f.names) > 0 {
+		return errors.New("--deleted cannot be combined with --name: every other matching object would count as deleted")
 	}
 	return nil
 }

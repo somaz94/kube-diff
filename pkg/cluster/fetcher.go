@@ -189,6 +189,38 @@ func (f *Fetcher) Get(ctx context.Context, apiVersion, kind, namespace, name str
 	return resource, nil
 }
 
+// ResourceLister lists the cluster objects of one kind. *Fetcher implements it.
+type ResourceLister interface {
+	List(ctx context.Context, apiVersion, kind, namespace, selector string) ([]unstructured.Unstructured, error)
+}
+
+// List returns the apiVersion/kind objects matching the label selector, from
+// namespace for a namespaced kind. A kind discovery reports as namespaced but
+// given no namespace is an error rather than a cluster-wide list, which would
+// pull in other namespaces. Without discovery the scope is a guess, so an empty
+// namespace lists cluster-wide, the way Get reads it.
+func (f *Fetcher) List(ctx context.Context, apiVersion, kind, namespace, selector string) ([]unstructured.Unstructured, error) {
+	gvr, namespaced, err := f.resolve(ctx, apiVersion, kind)
+	if err != nil {
+		return nil, err
+	}
+	opts := metav1.ListOptions{LabelSelector: selector}
+
+	var list *unstructured.UnstructuredList
+	switch {
+	case namespaced && namespace == "" && f.discovery != nil:
+		return nil, fmt.Errorf("list %s %s: namespaced kind needs a namespace", apiVersion, kind)
+	case namespaced && namespace != "":
+		list, err = f.client.Resource(gvr).Namespace(namespace).List(ctx, opts)
+	default:
+		list, err = f.client.Resource(gvr).List(ctx, opts)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+
 // Namespaced reports whether apiVersion/kind is a namespaced resource. A kind
 // the cluster does not serve returns a no-match error, as Get does, and a
 // Fetcher without discovery returns ErrScopeUnknown.
