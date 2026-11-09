@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.9.0](https://github.com/somaz94/kube-diff/compare/v0.8.0...v0.9.0) (2026-11-09)
+
+### Features
+
+- compare a server-side apply dry run with --server-side ([03c8c38](https://github.com/somaz94/kube-diff/commit/03c8c3840701f4fc5d4e662877dfed08463cfb45))
+
+### Documentation
+
+- document --server-side and what it does not show ([5e0ffa7](https://github.com/somaz94/kube-diff/commit/5e0ffa77078a5b9a721b1dce0ef5525b3cd2fee7))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.8.0](https://github.com/somaz94/kube-diff/compare/v0.7.0...v0.8.0) (2026-11-09)
 
 ### Features
