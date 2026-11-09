@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.8.0](https://github.com/somaz94/kube-diff/compare/v0.7.0...v0.8.0) (2026-11-09)
+
+### Features
+
+- report objects the manifests no longer contain with --deleted ([be00216](https://github.com/somaz94/kube-diff/commit/be0021635d40c38cb45b960bc1f1104fe3ac26ea))
+
+### Documentation
+
+- document --deleted and correct the kubectl diff comparison ([d1c736e](https://github.com/somaz94/kube-diff/commit/d1c736ecef1cefd978a6acaf0b75bf6d873147d4))
+
+### Contributors
+
+- somaz
+
+<br/>
+
 ## [v0.7.0](https://github.com/somaz94/kube-diff/compare/v0.6.2...v0.7.0) (2026-11-09)
 
 ### Features
